@@ -24,6 +24,8 @@ val scrcpyDownloadDir = layout.buildDirectory.dir("generated/scrcpy/assets")
 val scrcpyServerAssetFile = scrcpyDownloadDir.map { it.file(scrcpyServerAssetName) }
 val libphonenumberMetadataDir = layout.buildDirectory.dir("generated/libphonenumber/assets")
 
+// Detect if we're running in a CI environment (e.g., GitHub Actions).
+val isEnvironmentGithubCI = providers.environmentVariable("GITHUB_ACTIONS").isPresent
 
 abstract class DownloadAssetTask : DefaultTask() {
     @get:Input
@@ -127,7 +129,18 @@ android {
         buildConfigField("String", "SCRCPY_SERVER_SHA256", "\"$scrcpyServerSha256\"")
         buildConfigField("String", "SCRCPY_SERVER_ASSET_NAME", "\"$scrcpyServerAssetName\"")
     }
+    signingConfigs {
+        // Signing config for CI environments.
+        create("ci-release") {
+            if (isEnvironmentGithubCI) {
+                storeFile = file(System.getenv("KEYSTORE_FILE") ?: throw GradleException("Keystore file not provided for release signing. env variable: KEYSTORE_FILE"))
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: throw GradleException("Keystore password not provided for release signing. env variable: KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS") ?: throw GradleException("Key alias not provided for release signing. env variable: KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD") ?:throw GradleException("Key password not provided for release signing. env variable: KEY_PASSWORD")
 
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -136,6 +149,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (isEnvironmentGithubCI) {
+                println("Configuring release build for CI environment. Official release signing keys will be used.")
+                signingConfig = signingConfigs.getByName("ci-release")
+            }
         }
     }
     compileOptions {
