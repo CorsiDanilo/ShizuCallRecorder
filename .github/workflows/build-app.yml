@@ -57,8 +57,8 @@ jobs:
     
     # Output the build type for the release job
     outputs:
-      apk_name: ${{ steps.set-output.outputs.apk_name }}
-      build_type: ${{ steps.set-output.outputs.build_type }}
+      FINAL_APK_NAME: ${{ steps.set-output.outputs.FINAL_APK_NAME }}
+      BUILD_TYPE: ${{ steps.set-output.outputs.BUILD_TYPE }}
     
     steps:
       - name: Checkout Repository
@@ -73,9 +73,10 @@ jobs:
       
       # Set up Gradle with caching for faster builds
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
           validate-wrappers: true # Verify Gradle wrapper integrity to prevent supply chain attacks
+          cache-provider: basic # DO NOT REMOVE, gradle V6 made controversial OPT-IN BY DEFAULT NEW TERMS FOR THEIR NEW PROPRIETARY "ADVANCED CACHING". basic is previous MIT FOSS caching variant with no terms.
           # In the weird case where we could run this CI on a PRs from forks, cache is read-only to prevents cache poisoning.
           cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
       
@@ -84,43 +85,43 @@ jobs:
         id: set-output
         run: |
           if [ "${{ inputs.release_type }}" = "Debug Asset" ]; then
-            echo "build_type=debug" >> $GITHUB_OUTPUT
-            echo "apk_name=ShizuCallRecorder-${{ inputs.version }}-debug.apk" >> $GITHUB_OUTPUT
+            echo "BUILD_TYPE=debug" >> $GITHUB_OUTPUT
+            echo "FINAL_APK_NAME=ShizuCallRecorder-${{ inputs.version }}-debug.apk" >> $GITHUB_OUTPUT
           else
-            echo "build_type=release" >> $GITHUB_OUTPUT
-            echo "apk_name=ShizuCallRecorder-${{ inputs.version }}.apk" >> $GITHUB_OUTPUT
+            echo "BUILD_TYPE=release" >> $GITHUB_OUTPUT
+            echo "FINAL_FINAL_APK_NAME=ShizuCallRecorder-${{ inputs.version }}.apk" >> $GITHUB_OUTPUT
           fi
       
       # Set up signing for release builds
       # Signing keystore is stored as a base64-encoded secret
-      - name: Setup Release Signing
-        if: ${{ inputs.release_type != 'Debug Asset' }}
+      - name: Decode Keystore
+        if: ${{ steps.set-output.outputs.BUILD_TYPE != 'debug' }}
         run: |
           # Decode the keystore from base64 secret
-          echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > app/release.keystore
+          echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > app/release-keystore.jks
           
-          # Create signing configuration for Gradle
-          echo "RELEASE_STORE_FILE=release.keystore" >> $GITHUB_ENV
-          echo "RELEASE_STORE_PASSWORD=${{ secrets.SIGNING_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "RELEASE_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "RELEASE_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}" >> $GITHUB_ENV
-      
       # Build Debug APK (for Debug Asset type)
       - name: Build Debug APK
-        if: ${{ inputs.release_type == 'Debug Asset' }}
+        if: ${{ steps.set-output.outputs.BUILD_TYPE == 'debug' }}
         run: ./gradlew assembleDebug -PversionName=${{ inputs.version }} -PversionCode=${{ github.run_number }} -PciBuildNumber=${{ github.run_id }} --no-daemon --stacktrace
 
       # Build Release APK (for Release/Pre-Release types)
       # Uses signing configuration from secrets
       - name: Build Release APK
-        if: ${{ inputs.release_type != 'Debug Asset' }}
+        if: ${{ steps.set-output.outputs.BUILD_TYPE == 'release' }}
+        env:
+          KEYSTORE_FILE: release-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: ./gradlew assembleRelease -PversionName=${{ inputs.version }} -PversionCode=${{ github.run_number }} -PciBuildNumber=${{ github.run_id }} --no-daemon --stacktrace
 
       # Rename and move APK with version for clarity
       - name: Prepare APK Artifact
         run: |
-          ls -R app/build/outputs/apk/
-          if [ "${{ steps.set-output.outputs.build_type }}" = "debug" ]; then
+          tree app/build/outputs/apk/
+          echo ----
+          if [ "${{ steps.set-output.outputs.BUILD_TYPE }}" = "debug" ]; then
             mv app/build/outputs/apk/debug/app-debug.apk \
                app/build/outputs/apk/ShizuCallRecorder-${{ inputs.version }}-debug.apk
           else
@@ -130,15 +131,15 @@ jobs:
       
       # Clean up signing keystore (security best practice)
       - name: Cleanup Signing Files
-        if: ${{ always() && inputs.release_type != 'Debug Asset' }}
-        run: rm -f app/release.keystore
+        if: ${{ always() && steps.set-output.outputs.BUILD_TYPE != 'debug' }}
+        run: rm -f app/release-keystore.jks
       
       # Upload the APK as a build artifact for the release job
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v6
         with:
-          name: apk-${{ steps.set-output.outputs.build_type }}
-          path: app/build/outputs/apk/${{ steps.set-output.outputs.apk_name }}
+          name: apk-${{ steps.set-output.outputs.BUILD_TYPE }}
+          path: app/build/outputs/apk/${{ steps.set-output.outputs.FINAL_APK_NAME }}
           retention-days: 30
           if-no-files-found: error
 
@@ -165,7 +166,7 @@ jobs:
       - name: Download APK Artifact
         uses: actions/download-artifact@v7
         with:
-          name: apk-${{ needs.build.outputs.build_type }}
+          name: apk-${{ needs.build.outputs.BUILD_TYPE }}
           path: ./release-assets
       
       # Generate build provenance attestation for supply chain security
@@ -174,7 +175,7 @@ jobs:
       - name: Generate Build Provenance Attestation
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: ./release-assets/${{ needs.build.outputs.apk_name }}
+          subject-path: ./release-assets/${{ needs.build.outputs.FINAL_APK_NAME }}
       
       # Create a draft GitHub release using the GitHub CLI
       # Draft releases allow for review before publishing
@@ -196,7 +197,7 @@ jobs:
             --title "ShizuCallRecorder v${{ inputs.version }}" \
             --generate-notes \
             $PRERELEASE_FLAG \
-            ./release-assets/${{ needs.build.outputs.apk_name }}
+            ./release-assets/${{ needs.build.outputs.FINAL_APK_NAME }}
           
           echo "Draft release v${{ inputs.version }} created successfully!"
           echo "Please review and publish the release manually."
