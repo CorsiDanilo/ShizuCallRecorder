@@ -119,7 +119,8 @@ jobs:
       # Rename and move APK with version for clarity
       - name: Prepare APK Artifact
         run: |
-          if [ "${{ inputs.release_type }}" = "Debug Asset" ]; then
+          ls -R app/build/outputs/apk/
+          if [ "${{ steps.set-output.outputs.build_type }}" = "debug" ]; then
             mv app/build/outputs/apk/debug/app-debug.apk \
                app/build/outputs/apk/ShizuCallRecorder-${{ inputs.version }}-debug.apk
           else
