@@ -1,7 +1,7 @@
 name: Bug Report
 description: Report a bug or unexpected behavior
 title: "[Bug]: "
-labels: ["bug"]
+labels: ["bug","Waiting For Contributors Review"]
 assignees: []
 
 body:
@@ -11,7 +11,7 @@ body:
       label: Checklist
       description: Please confirm the following before continuing
       options:
-        - label: I have searched existing [issues](https://github.com/kitsumed/ShizuCallRecorder/issues) and [discussions](https://github.com/kitsumed/ShizuCallRecorder/discussions/categories/q-a) and this is not a duplicate
+        - label: I have searched existing [issues](https://github.com/kitsumed/ShizuCallRecorder/issues) and [discussions](https://github.com/kitsumed/ShizuCallRecorder/discussions/categories/community-support) and this is not a duplicate
           required: true
         - label: I am using the latest version of the project
           required: true
@@ -87,8 +87,8 @@ body:
       placeholder: |
         If you have a file, please upload it in one of the prior steps instead of pasting its content here.
 
-        To export logs, you can go under the Debug section and enable Log recording. Note that this feature only record a limited amount of logs, and was added to help general users report bugs.
-        If you can, please export the logs from your device using logcat.
+        To export logs, you can go under the Debug section and enable Log recording. Note that this feature only record a limited amount of logs, and was added to help non-tech users report bugs.
+        If you can, please export the logs from your device using logcat or any Shizuku-powered app that use logcat.
       render: shell
     validations:
       required: false
