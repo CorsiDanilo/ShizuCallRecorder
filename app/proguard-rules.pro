@@ -27,3 +27,13 @@
 -keepattributes LineNumberTable
 -keepattributes SourceFile
 -keepattributes Signature, InnerClasses, EnclosingMethod
+
+# Strip all Log.v calls
+-assumenosideeffects class android.util.Log {
+  v(...);
+}
+
+# Also strip your our custom AppLogger verbose calls
+-assumenosideeffects class com.kitsumed.shizucallrecorder.utils.AppLogger {
+  v(...);
+}
