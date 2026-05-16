@@ -19,8 +19,6 @@ body:
           required: true
         - label: I have read the application [docs](https://github.com/kitsumed/ShizuCallRecorder/blob/main/docs/SUPPORT.md).
           required: true
-        - label: I am reporting a bug or/and unexpected behavior, not asking for help / support.
-          required: true
 
   - type: input
     id: appVersion
@@ -88,7 +86,8 @@ body:
         If you have a file, please upload it in one of the prior steps instead of pasting its content here.
 
         To export logs, you can go under the Debug section and enable Log recording. Note that this feature only record a limited amount of logs, and was added to help non-tech users report bugs.
-        If you can, please export the logs from your device using logcat or any Shizuku-powered app that use logcat.
+        
+        If you can, please also include an export of the logs from your device using logcat or any Shizuku-powered app that use logcat, so that any missing logs may be visible. Ensure you redact sensitive informations.
       render: shell
     validations:
       required: false
