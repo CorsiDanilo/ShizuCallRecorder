@@ -660,8 +660,6 @@ private fun DebugSection(preferences: AppPreferences, updateTrigger: Int, action
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Keep the number in local state so the field feels responsive as the user types.
-                // The number is only saved to settings when the user presses Done on the keyboard.
                 var textState by remember(debugCallerNumber) { mutableStateOf(debugCallerNumber) }
                 val allowedChars = "^[0-9+-]*$".toRegex()
                 val keyboardController = LocalSoftwareKeyboardController.current
@@ -669,7 +667,12 @@ private fun DebugSection(preferences: AppPreferences, updateTrigger: Int, action
                 OutlinedTextField(
                     value    = textState,
                     onValueChange = { newValue ->
-                        if (newValue.matches(allowedChars)) textState = newValue
+                        if (newValue.matches(allowedChars)) {
+                            textState = newValue
+                            // We aggressively update the setting on every change so that
+                            // the test buttons always use the latest number.
+                            actions.setDebugCallerNumber(newValue)
+                        }
                     },
                     label    = { Text(stringResource(R.string.settings_debug_caller_number)) },
                     modifier = Modifier.fillMaxWidth(),
