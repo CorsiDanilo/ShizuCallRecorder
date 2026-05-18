@@ -9,7 +9,7 @@ The first **non-root FOSS call recorder app for Android 11+**! ShizuCallRecorder
 
 It can also be seen as an on-device wrapper for [scrcpy-server](https://github.com/genymobile/scrcpy).
 
-**This application is intended to be a very basic call recorder that focuses solely on call recording**.
+**This application is intended to be a very basic call recorder that focuses solely on call recording for phone carriers**.
 
 I am not 100% opposed to adding support for third-party apps, but this is not the main focus and I want to keep the application simple. See [contributing](./CONTRIBUTING.md) for more information.
 
