@@ -140,7 +140,7 @@ object ScrcpyConfig {
             // send_device_meta=false: skip the 64-byte device-name prefix in the stream header.
             "send_device_meta=false",
             "send_frame_meta=true",
-            "send_codec_meta=true"
+            "send_stream_meta=true"
         )
         if (audioBitRate > 0) {
             args.add("audio_bit_rate=$audioBitRate")

@@ -19,14 +19,32 @@ import java.io.FileInputStream
 /**
  * Reads the binary audio stream that scrcpy-server sends over the pipe.
  *
- * Stream layout (tunnel_forward=false, send_device_meta=false, send_codec_meta=true, send_frame_meta=true):
- *   - Header (once):  4 bytes — Codec FourCC, big-endian uint32. No dummy byte (tunnel_forward=false).
- *   - Per packet:     8 bytes PTS+flags (int64) + 4 bytes payload size (int32) + N bytes payload.
- *     The first packet is always a CONFIG packet (bit 63 of PTS set) carrying codec init data (CSD).
- *     scrcpy-server strips AOPUSHDR/fLaC wrappers from CSD before sending.
- *   - PTS bit 63: PACKET_FLAG_CONFIG — packet is CSD, not audio. PTS value is undefined.
- *   - PTS bit 62: PACKET_FLAG_KEY_FRAME — frame is independently decodable.
- *   - PTS bits 0-61: presentation timestamp in microseconds.
+ * Stream connection header (once):
+ *  - 4 bytes: Codec FourCC (e.g. "opus" 0x6F707573)
+ *
+ * Scrcpy v4.0 Frame Header (12 bytes per packet):
+ *
+ *     [. . . . . . . .|. . . .]. . . . . . . . . . . . . . . ...
+ *      <-------------> <-----> <-----------------------------...
+ *            PTS        packet        raw packet
+ *                        size
+ *      <--------------------->
+ *            frame header
+ *
+ * The most significant bits of the 8-byte PTS are used for packet flags:
+ *
+ *      byte 0   byte 1   byte 2   byte 3   byte 4   byte 5   byte 6   byte 7
+ *     0CK..... ........ ........ ........ ........ ........ ........ ........
+ *     ^^^<------------------------------------------------------------------>
+ *     |||                                PTS (bits 0-60)
+ *     || `- (K)ey frame         (bit 61)
+ *     | `-- (C)onfig packet     (bit 62) - The first packet is always a CONFIG packet.
+ *      `--- (M)edia packet flag (bit 63) - 0 for media packet, 1 for session packet. Audio is always 0.
+ *
+ *      byte 8   byte 9   byte 10  byte 11
+ *     ........ ........ ........ ........ ........ ........ . . .
+ *     <---------------------------------> <---------------- . . .
+ *                packet size                       raw packet
  *
  * Maintainer's guide — when updating scrcpy-server, verify in the files below that
  * PACKET_FLAG_CONFIG/KEY_FRAME bitmasks and the writeFrameMeta() header order are unchanged,
@@ -50,12 +68,17 @@ class ScrcpyClient(
         private const val TAG = "SCR:ScrcpyClient"
 
         /**
-         * Per-packet flag bitmasks — mirrors Streamer.java (PACKET_FLAG_CONFIG = 1L << 63,
-         * PACKET_FLAG_KEY_FRAME = 1L << 62). ORed into the 64-bit PTS before writing to the wire.
+         * Per-packet flag bitmasks — used to extract flags from the 8-byte PTS field.
+         *
+         * - MEDIA_PACKET_FLAG (bit 63): '0' = Media packet, '1' = Session packet (Audio streams only use Media).
+         * - PACKET_FLAG_CONFIG (bit 62): '1' = Contains Codec Specific Data (CSD).
+         * - PACKET_FLAG_KEY_FRAME (bit 61): '1' = Key frame.
+         *
          * See: https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/device/Streamer.java
          */
-        private const val PACKET_FLAG_CONFIG    = 1L shl 63
-        private const val PACKET_FLAG_KEY_FRAME = 1L shl 62
+        private const val MEDIA_PACKET_FLAG     = 1L shl 63
+        private const val PACKET_FLAG_CONFIG    = 1L shl 62
+        private const val PACKET_FLAG_KEY_FRAME = 1L shl 61
 
         /**
          * Hard cap on payload size (1 MiB). A legitimate Opus/AAC packet is well under 64 KB;
@@ -116,14 +139,16 @@ class ScrcpyClient(
      * putLong(ptsAndFlags) + putInt(packetSize).
      *
      * @param rawPtsAndFlags Raw wire value; kept for diagnostics in size-mismatch errors.
-     * @param pts            Microseconds, with PACKET_FLAG_CONFIG and PACKET_FLAG_KEY_FRAME stripped.
-     * @param isConfig       PACKET_FLAG_CONFIG (bit 63) was set — packet carries CSD, not audio.
-     * @param isKeyFrame     PACKET_FLAG_KEY_FRAME (bit 62) was set.
+     * @param pts            Microseconds, with packet flags stripped.
+     * @param isMedia        True if the packet is a media packet (bit 63 is 0), false for session packets.
+     * @param isConfig       PACKET_FLAG_CONFIG (bit 62) was set — packet carries CSD, not audio.
+     * @param isKeyFrame     PACKET_FLAG_KEY_FRAME (bit 61) was set.
      * @param payloadSize    Payload bytes that follow this header on the wire.
      */
     private data class AudioEnvelope(
         val rawPtsAndFlags: Long,
         val pts: Long,
+        val isMedia: Boolean,
         val isConfig: Boolean,
         val isKeyFrame: Boolean,
         val payloadSize: Int
@@ -168,16 +193,33 @@ class ScrcpyClient(
 
             listener.onMetadataReceived(resolvedCodec)
 
+            var hasReceivedConfig = false
             while (running) {
                 // Read the 12-byte per-packet header — mirrors Streamer.java#writeFrameMeta().
                 val header = readPacketHeader(inputStream)
+
+                // The first packet MUST be a config packet. If it's not, the protocol likely changed or parsing is misaligned.
+                if (!hasReceivedConfig) {
+                    if (!header.isConfig) {
+                        throw java.io.IOException(
+                            "Protocol error: The first packet must be a CONFIG packet, but received a standard packet! " +
+                            "(Flags parsed: isMedia=${header.isMedia}, isConfig=${header.isConfig}, isKeyFrame=${header.isKeyFrame}). " +
+                            "Did the scrcpy packet format change again?"
+                        )
+                    }
+                    hasReceivedConfig = true
+                }
+
+                if (!header.isMedia) {
+                    AppLogger.w(TAG, "Unexpected session packet detected on audio stream! flags=0x${header.rawPtsAndFlags.toString(16)}")
+                }
 
                 // Guard against stream misalignment: sizes this large are never legitimate.
                 if (header.payloadSize <= 0 || header.payloadSize > MAX_PACKET_SIZE) {
                     val ptsHex  = "0x${header.rawPtsAndFlags.toString(16)}"
                     val sizeHex = "0x${Integer.toHexString(header.payloadSize)}"
                     throw java.io.IOException(
-                        "Implausible packet size ${header.payloadSize} ($sizeHex) after PTS $ptsHex — " +
+                        "Implausible packet size ${header.payloadSize} ($sizeHex) after PTS/Flags $ptsHex (parsed pts=${header.pts}, config=${header.isConfig}, keyFrame=${header.isKeyFrame}, media=${header.isMedia}) — " +
                         "probable stream misalignment (check no extra byte was read before the FourCC header)."
                     )
                 }
@@ -186,7 +228,7 @@ class ScrcpyClient(
                 val payloadBytes = ByteArray(header.payloadSize)
                 inputStream.readFully(payloadBytes)
 
-                AppLogger.v(TAG, "Packet: pts=${header.pts} config=${header.isConfig} size=${header.payloadSize}")
+                AppLogger.v(TAG, "Packet: pts=${header.pts} config=${header.isConfig} keyFrame=${header.isKeyFrame} media=${header.isMedia} size=${header.payloadSize}")
 
                 listener.onAudioPacket(
                     AudioPacket(
@@ -235,8 +277,9 @@ class ScrcpyClient(
         val payloadSize = stream.readInt()   // Mirrors: headerBuffer.putInt(packetSize)
         return AudioEnvelope(
             rawPtsAndFlags = ptsAndFlags,
-            // Mask out both flag bits (equivalent to 0x3FFF_FFFF_FFFF_FFFF) to get the raw PTS.
-            pts            = ptsAndFlags and (PACKET_FLAG_CONFIG or PACKET_FLAG_KEY_FRAME).inv(),
+            // Mask out the top 3 bits to get the raw PTS (61 bits).
+            pts            = ptsAndFlags and (MEDIA_PACKET_FLAG or PACKET_FLAG_CONFIG or PACKET_FLAG_KEY_FRAME).inv(),
+            isMedia        = (ptsAndFlags and MEDIA_PACKET_FLAG) == 0L,
             isConfig       = (ptsAndFlags and PACKET_FLAG_CONFIG)    != 0L,
             isKeyFrame     = (ptsAndFlags and PACKET_FLAG_KEY_FRAME) != 0L,
             payloadSize    = payloadSize

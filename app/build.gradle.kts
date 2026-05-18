@@ -16,9 +16,9 @@ plugins {
     alias(libs.plugins.aboutlibraries)
 }
 
-val scrcpyVersion = "3.3.4"
+val scrcpyVersion = "4.0"
 val scrcpyServerUrl = "https://github.com/Genymobile/scrcpy/releases/download/v$scrcpyVersion/scrcpy-server-v$scrcpyVersion"
-val scrcpyServerSha256 = "8588238c9a5a00aa542906b6ec7e6d5541d9ffb9b5d0f6e1bc0e365e2303079e"
+val scrcpyServerSha256 = "84924bd564a1eb6089c872c7521f968058977f91f5ff02514a8c74aff3210f3a"
 val scrcpyServerAssetName = "scrcpy-server"
 val scrcpyDownloadDir = layout.buildDirectory.dir("generated/scrcpy/assets")
 val scrcpyServerAssetFile = scrcpyDownloadDir.map { it.file(scrcpyServerAssetName) }
