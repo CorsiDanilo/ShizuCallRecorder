@@ -201,7 +201,7 @@ fun PermissionsContent(
                     Triple(stringResource(R.string.permission_phone_state_label), stringResource(R.string.permission_phone_state_description), status.phoneStateGranted to Icons.Default.Phone),
                     Triple(stringResource(R.string.permission_call_log_label), stringResource(R.string.permission_call_log_description), status.callLogGranted to Icons.Default.History),
                     Triple(stringResource(R.string.permission_battery_label), stringResource(R.string.permission_battery_description), status.batteryExempted to Icons.Default.BatterySaver),
-                    Triple(stringResource(R.string.permission_storage_label), stringResource(R.string.permission_storage_description), status.storageSelected to Icons.Default.Folder)
+                    Triple(stringResource(R.string.settings_recording_folder_label), stringResource(R.string.permission_storage_description), status.storageSelected to Icons.Default.Folder)
                 )
 
                 permissions.forEach { (label, desc, grantInfo) ->
