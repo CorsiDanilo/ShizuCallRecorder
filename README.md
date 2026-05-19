@@ -66,6 +66,18 @@ You can download the latest version [here](#).
 
 Please see the [contributing](./CONTRIBUTING.md) guide.
 
+<details>
+  <summary><b>Translation hosting generously provided by <a href="https://hosted.weblate.org/engage/shizucallrecorder/">Weblate</a>.<b/></summary>
+  <p align="left">
+    
+  </p>
+  <p align="left">
+    <a href="https://hosted.weblate.org/engage/shizucallrecorder/">
+      <img src="https://hosted.weblate.org/widget/shizucallrecorder/horizontal-auto.svg" alt="État de la traduction">
+    </a>
+  </p>
+</details>
+
 ## License
 The software is licensed under the [GNU General Public License, version 3 (GPL-3.0)](LICENSE). ⚠️ **Additional terms** under GNU GPL version 3 Section 7 are at the end of the file.
  - This License does not grant any rights in the trademarks, service marks, or logos of any Contributor.
