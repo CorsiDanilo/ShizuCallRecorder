@@ -69,11 +69,9 @@ Please see the [contributing](./CONTRIBUTING.md) guide.
 <details>
   <summary><b>Translation hosting generously provided by <a href="https://hosted.weblate.org/engage/shizucallrecorder/">Weblate</a>.<b/></summary>
   <p align="left">
-    
-  </p>
-  <p align="left">
+    <p><strong>NOTE:</strong> By default, Weblate will use your account creation email when making commits to GitHub (to give you credits). This would leak your email address, you can change this behavior in your account settings.</p>
     <a href="https://hosted.weblate.org/engage/shizucallrecorder/">
-      <img src="https://hosted.weblate.org/widget/shizucallrecorder/horizontal-auto.svg" alt="État de la traduction">
+      <img src="https://hosted.weblate.org/widget/shizucallrecorder/horizontal-auto.svg" alt="Traduction Stats">
     </a>
   </p>
 </details>
