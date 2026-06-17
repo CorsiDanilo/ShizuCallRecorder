@@ -93,7 +93,8 @@ fun PermissionsScreen(
         if (ShizukuConnectionManager.isAvailable()) {
             // If Shizuku server is running, just ensure we have all required permissions on the Shell app level. If not, then the app won't work.
             val requiredPermissions = listOf(
-                Manifest.permission.CAPTURE_AUDIO_OUTPUT
+                Manifest.permission.CAPTURE_AUDIO_OUTPUT,
+                "android.permission.MANAGE_APP_OPS_MODES" // Manifest.permission.MANAGE_APP_OPS_MODES is hidden in public API
             )
 
             val missingPermissions = requiredPermissions.filter {
@@ -111,7 +112,7 @@ fun PermissionsScreen(
                     .setMessage(dialogMessage)
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .setCancelable(false)
-                    .setPositiveButton("Exit") { _, _ ->
+                    .setPositiveButton(stringResource(R.string.general_ok)) { _, _ ->
                         exitProcess(0)
                     }.show()
             }

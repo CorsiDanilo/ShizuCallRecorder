@@ -72,6 +72,7 @@ import com.kitsumed.shizucallrecorder.ui.viewmodels.SettingsActions
 import com.kitsumed.shizucallrecorder.ui.viewmodels.SettingsViewModel
 import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
+import kotlinx.coroutines.delay
 import org.xmlpull.v1.XmlPullParser
 import java.util.Locale
 
@@ -425,8 +426,16 @@ private fun SecuritySection(preferences: AppPreferences, updateTrigger: Int, act
         AnimatedVisibility(visible = autoManageShizuku,enter = fadeIn() + expandVertically(),exit = fadeOut() + shrinkVertically()) {
             Column {
                 var textState by remember(shizukuAuthKey) { mutableStateOf(shizukuAuthKey) }
-                val keyboardController = LocalSoftwareKeyboardController.current
                 var isFocused by remember { mutableStateOf(false) }
+
+                // Listen for textState updates
+                LaunchedEffect(textState) {
+                    // LaunchedEffect cancels the previous block and restarts when updating too quickly.
+                    delay(100)
+                    if (textState != shizukuAuthKey) {
+                        actions.setShizukuAuthKey(textState)
+                    }
+                }
 
                 OutlinedTextField(
                     value    = textState,
@@ -439,11 +448,13 @@ private fun SecuritySection(preferences: AppPreferences, updateTrigger: Int, act
                     singleLine = true,
                     visualTransformation = if (isFocused) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done, keyboardType = KeyboardType.Password, showKeyboardOnFocus = true),
-                    keyboardActions = KeyboardActions(onDone = {
-                        actions.setShizukuAuthKey(textState)
-                        keyboardController?.hide()
-                    })
                 )
+
+                if (textState.trim().isEmpty()) {
+                    WarningCard(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        message = stringResource(R.string.recording_shizuku_auth_key_missing))
+                }
 
                 ToggleListItem(
                     label           = stringResource(R.string.settings_shizuku_start_on_record),
@@ -815,26 +826,25 @@ private fun DebugSection(preferences: AppPreferences, updateTrigger: Int, action
             ) {
                 var textState by remember(debugCallerNumber) { mutableStateOf(debugCallerNumber) }
                 val allowedChars = "^[0-9+-]*$".toRegex()
-                val keyboardController = LocalSoftwareKeyboardController.current
+
+                LaunchedEffect(textState) {
+                    delay(100) // Cancel current if new textState comes in within x time
+                    if (textState != debugCallerNumber) {
+                        actions.setDebugCallerNumber(textState)
+                    }
+                }
 
                 OutlinedTextField(
                     value    = textState,
                     onValueChange = { newValue ->
                         if (newValue.matches(allowedChars)) {
                             textState = newValue
-                            // We aggressively update the setting on every change so that
-                            // the test buttons always use the latest number.
-                            actions.setDebugCallerNumber(newValue)
                         }
                     },
                     label    = { Text(stringResource(R.string.settings_debug_caller_number)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done, keyboardType = KeyboardType.Phone, showKeyboardOnFocus = true),
-                    keyboardActions = KeyboardActions(onDone = {
-                        actions.setDebugCallerNumber(textState)
-                        keyboardController?.hide()
-                    })
                 )
                 DebugActionGrid(actions)
             }
