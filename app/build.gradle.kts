@@ -156,7 +156,12 @@ android {
             )
             if (isEnvironmentGithubCI) {
                 println("Configuring release build for CI environment. Official release signing keys will be used.")
-                signingConfig = signingConfigs.getByName("ci-release")
+                if (shouldSkipSigning) {
+                    println("WARNING: SKIP_SIGNING is set. The build will NOT be signed, which may cause installation to fail on Android Devices. Do not set SKIP_SIGNING when BUILDING the apk! You can for other tasks.")
+                } else
+                {
+                    signingConfig = signingConfigs.getByName("ci-release")
+                }
             }
         }
     }
