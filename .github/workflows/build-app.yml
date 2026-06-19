@@ -141,7 +141,7 @@ jobs:
       
       # Clean up signing keystore (security best practice)
       - name: Cleanup Signing Files
-        if: ${{ always() && steps.set-output.outputs.BUILD_TYPE != 'debug' }}
+        if: ${{ always()}}
         run: rm -f app/release-keystore.jks
       
       # Upload the APK as a build artifact for the release job
