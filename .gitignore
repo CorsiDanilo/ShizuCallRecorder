@@ -2,6 +2,12 @@
 .gradle/
 build/
 
+# Gradle Wrapper
+gradle/wrapper/gradle-wrapper.jar
+gradlew
+gradlew.bat
+# We only commit the gradle wrapper properties file, which contains the gradle version to use
+
 # Local configuration file (sdk path, etc)
 local.properties
 
