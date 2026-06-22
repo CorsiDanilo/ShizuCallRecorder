@@ -114,56 +114,19 @@ val extractLibphonenumberMetadata = tasks.register<ExtractMetadataTask>("extract
     into(outputDir)
 }
 
-/**
- * Create a unique incremental version code from a version name string.
- * @param versionName The version name string (e.g., "1.0.2").
- * @throws IllegalArgumentException If the version format is invalid or components are out of bounds.
- * @throws ArithmeticException If the resulting version code overflows Int.MAX_VALUE.
- */
-fun generateVersionCode(versionName: String): Int {
-    if (versionName.isBlank()) {
-        val errorMsg = "Version name cannot be blank or empty."
-        logger.error("[ERROR] $errorMsg")
-        throw IllegalArgumentException(errorMsg)
+tasks.register("writeVersionForCi") {
+    // Define the output file path (e.g., app/build/outputs/version.txt)
+    val outputFile = layout.buildDirectory.file("outputs/version.txt")
+    outputs.file(outputFile)
+
+    doLast {
+        val file = outputFile.get().asFile
+        file.parentFile.mkdirs() // Ensure the outputs directory exists
+        file.writeText(android.defaultConfig.versionName!!)
+        logger.lifecycle("Successfully wrote versionName to ${file.absolutePath}")
     }
-
-    val parts = versionName.split(".")
-
-    if (parts.size > 3 || parts.isEmpty()) {
-        val errorMsg = "Invalid version format '$versionName'. Expected 1 to 3 dot-separated segments (e.g., '1.0.2')."
-        logger.error("[ERROR] $errorMsg")
-        throw IllegalArgumentException(errorMsg)
-    }
-
-    val major = parts.getOrNull(0)?.toIntOrNull() ?: throw IllegalArgumentException("[ERROR] Missing or invalid Major version in '$versionName'")
-    val minor = parts.getOrNull(1)?.toIntOrNull() ?: throw IllegalArgumentException("[ERROR] Missing or invalid Minor version in '$versionName'")
-    val patch = parts.getOrNull(2)?.toIntOrNull() ?: throw IllegalArgumentException("[ERROR] Missing or invalid Patch version in '$versionName'")
-
-    if (minor > 999 || patch > 9999) {
-        val errorMsg = "Version component out of bounds. Minor max is 999 (got $minor), Patch max is 9999 (got $patch)."
-        logger.error("[ERROR] $errorMsg")
-        throw IllegalArgumentException(errorMsg)
-    }
-
-    if (major > 214) {
-        val errorMsg = "Major version $major is too large and will cause an Int overflow. Max allowed is 214."
-        logger.error("[ERROR] $errorMsg")
-        throw ArithmeticException(errorMsg)
-    }
-
-    // Scale: Major * 10,000,000 + Minor * 10,000 + Patch
-    val versionCode = (major * 10_000_000) + (minor * 10_000) + patch
-
-    logger.lifecycle("[INFO] Successfully generated version code: $versionCode from '$versionName'")
-    return versionCode
 }
 
-
-val ciVersionName = providers.gradleProperty("versionName").getOrNull() ?: run {
-    logger.lifecycle("[INFO] 'versionName' not defined. Defaulting to '1.0.0'")
-    "1.0.0"
-}
-val ciVersionCode = generateVersionCode(ciVersionName)
 val ciBuildNumber = providers.gradleProperty("ciBuildNumber").getOrNull() ?: run {
     logger.lifecycle("[INFO] 'ciBuildNumber' not defined. Defaulting to 'Local'")
     "Local"
@@ -177,8 +140,9 @@ android {
         applicationId = "com.kitsumed.shizucallrecorder"
         minSdk = 30
         targetSdk = 36
-        versionCode = ciVersionCode
-        versionName = ciVersionName
+        // Keep theses two values hard-coded here and update them per version. (To keep F-Droid compatibility since their parser is very basic)
+        versionCode = 13
+        versionName = "1.1.0"
 
         buildConfigField("String", "CI_BUILD_NUMBER", "\"${ciBuildNumber}\"")
 

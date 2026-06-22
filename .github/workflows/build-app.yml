@@ -27,10 +27,6 @@ name: Build App
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release Version (SemVer, e.g., 1.0.0)'
-        required: true
-        type: string
       release_type:
         description: 'Release Type'
         required: true
@@ -59,6 +55,7 @@ jobs:
     outputs:
       FINAL_APK_NAME: ${{ steps.set-output.outputs.FINAL_APK_NAME }}
       BUILD_TYPE: ${{ steps.set-output.outputs.BUILD_TYPE }}
+      VERSION: ${{ steps.get-version.outputs.VERSION }}
     
     steps:
       - name: Checkout Repository
@@ -85,6 +82,19 @@ jobs:
         env:
           SKIP_SIGNING: true # Prevent build.gradle.kts from throwing error due to missing signing info
         run: gradle wrapper
+
+      - name: Extract Version via Gradle Task
+        id: get-version
+        env:
+          SKIP_SIGNING: true
+        run: |
+          # Run the task to generate the file
+          ./gradlew writeVersionForCi --no-daemon
+          # Read the exact string from the generated file
+          VERSION=$(cat app/build/outputs/version.txt)
+          # Export it to GitHub Actions outputs
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
       
       # Determine build type and set outputs of the build job
       - name: Set Build Configuration
@@ -92,10 +102,10 @@ jobs:
         run: |
           if [ "${{ inputs.release_type }}" = "Debug Asset" ]; then
             echo "BUILD_TYPE=debug" >> $GITHUB_OUTPUT
-            echo "FINAL_APK_NAME=ShizuCallRecorder-${{ inputs.version }}-debug.apk" >> $GITHUB_OUTPUT
+            echo "FINAL_APK_NAME=ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-debug.apk" >> $GITHUB_OUTPUT
           else
             echo "BUILD_TYPE=release" >> $GITHUB_OUTPUT
-            echo "FINAL_APK_NAME=ShizuCallRecorder-${{ inputs.version }}.apk" >> $GITHUB_OUTPUT
+            echo "FINAL_APK_NAME=ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk" >> $GITHUB_OUTPUT
           fi
       
       # Set up signing for release builds
@@ -113,7 +123,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: ./gradlew assembleDebug -PversionName=${{ inputs.version }} -PciBuildNumber=${{ github.run_id }} --no-daemon --stacktrace
+        run: ./gradlew assembleDebug -PciBuildNumber=${{ github.run_id }} --no-daemon --stacktrace
 
       # Build Release APK (for Release/Pre-Release types)
       # Uses signing configuration from secrets
@@ -124,19 +134,20 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease -PversionName=${{ inputs.version }} -PciBuildNumber=${{ github.run_id }} --no-daemon --stacktrace
+        run: ./gradlew assembleRelease -PciBuildNumber=${{ github.run_id }} --no-daemon --stacktrace
 
       # Rename and move APK with version for clarity
       - name: Prepare APK Artifact
         run: |
+          echo ----listing APK output directory for debugging...
           tree app/build/outputs/apk/
-          echo ----
+          echo ----moving files...
           if [ "${{ steps.set-output.outputs.BUILD_TYPE }}" = "debug" ]; then
             mv app/build/outputs/apk/debug/app-debug.apk \
-               app/build/outputs/apk/ShizuCallRecorder-${{ inputs.version }}-debug.apk
+               app/build/outputs/apk/ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-debug.apk
           else
             mv app/build/outputs/apk/release/app-release.apk \
-               app/build/outputs/apk/ShizuCallRecorder-${{ inputs.version }}.apk
+               app/build/outputs/apk/ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk
           fi
       
       # Clean up signing keystore (security best practice)
@@ -192,6 +203,8 @@ jobs:
       - name: Create Draft Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.build.outputs.VERSION }}
+          FINAL_APK_NAME: ${{ needs.build.outputs.FINAL_APK_NAME }}
         run: |
           # Determine if this is a pre-release
           PRERELEASE_FLAG=""
@@ -202,12 +215,12 @@ jobs:
           # Create the draft release with the APK attached
           # --draft: Release is not published until manually approved
           # --generate-notes: Auto-generate release notes from commits
-          gh release create "v${{ inputs.version }}" \
+          gh release create "v${RELEASE_VERSION}" \
             --draft \
-            --title "ShizuCallRecorder v${{ inputs.version }}" \
+            --title "ShizuCallRecorder v${RELEASE_VERSION}" \
             --generate-notes \
             $PRERELEASE_FLAG \
-            ./release-assets/${{ needs.build.outputs.FINAL_APK_NAME }}
+            ./release-assets/${FINAL_APK_NAME}
           
-          echo "Draft release v${{ inputs.version }} created successfully!"
+          echo "Draft release v${FINAL_APK_NAME} created successfully!"
           echo "Please review and publish the release manually."
