@@ -222,7 +222,7 @@ class ShizukuConnectionManager(
                 }
                 val shellService = shizukuConnectionManager.getShellService()
                 val result = shellService.grantAppOps(context.packageName, parsedPermissionName, getCurrentUserProfileId())
-                AppLogger.i(TAG, "Tried to grant AppOps $parsedPermissionName to ${context.packageName} via ShellService. Result: $result")
+                AppLogger.i(TAG, "Tried to grant AppOps $parsedPermissionName to ${context.packageName} via ShellService. ShellService returned result: $result")
                 return result
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to grant AppOps $parsedPermissionName via ShellService", e)

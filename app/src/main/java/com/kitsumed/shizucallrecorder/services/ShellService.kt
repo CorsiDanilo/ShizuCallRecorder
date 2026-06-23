@@ -334,11 +334,11 @@ class ShellService : IShellService.Stub {
             AppLogger.i(TAG, "Executing AppOps set --user $userProfileId $packageName $opName allow")
             val process = ProcessBuilder("appops", "set", "--user", userProfileId.toString(), packageName, opName, "allow").start()
             val errorOutput = process.errorStream.bufferedReader().readText().trim()
+            val inputOutput = process.inputStream.bufferedReader().readText().trim()
             val exitCode = process.waitFor()
-            if (exitCode != 0) {
-                AppLogger.w(TAG, "grantAppOps failed with exit code $exitCode. Error: $errorOutput")
-            }
-            return exitCode == 0
+            AppLogger.i(TAG, "grantAppOps completed with exit code $exitCode. Output: ${inputOutput.ifBlank { "Empty" }}, Error: ${errorOutput.ifBlank { "Empty" }}")
+            // We return false if the exit code is non-zero or if there was any error output, indicating that the operation failed.
+            return (exitCode == 0 && errorOutput.isBlank())
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error granting AppOps $opName to $packageName: ${e.message}", e)
         }
