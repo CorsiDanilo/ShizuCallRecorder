@@ -11,6 +11,8 @@ package com.kitsumed.shizucallrecorder.onboarding
 import android.content.Context
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.integrations.shizuku.ShizukuConnectionManager
+import com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionMode
+import com.kitsumed.shizucallrecorder.system.permissions.AppPermission
 import com.kitsumed.shizucallrecorder.system.permissions.PermissionChecks
 import com.kitsumed.shizucallrecorder.system.storage.SafHelper
 import com.kitsumed.shizucallrecorder.ui.viewmodels.AppNavigationViewModel
@@ -28,40 +30,37 @@ object OnboardingStatus {
      * @param disclaimerAccepted        True if the user has accepted the app disclaimer.
      * @param notificationsGranted      True if the app can post notifications.
      * @param contactsGranted           True if READ_CONTACTS is granted.
-     * @param phoneStateGranted         True if READ_PHONE_STATE is granted.
-     * @param callLogGranted            True if the app has permission to access the call log.
      * @param batteryExempted           True if the app is on the battery-optimisation whitelist.
-     * @param manageOngoingCallsGranted True if the app has the AppOps permission to manage ongoing calls.
      * @param storageSelected           True if a valid SAF recording folder has been chosen.
-     * @param shizukuRunning            True if the Shizuku service is currently active.
+     * @param shizukuRunning            True if the Shizuku service is currently active or ShizukuAutoManage was enabled in the app settings.
      * @param shizukuPermissionGranted  True if the user has granted Shizuku permission to this app.
+     * @param callDetectionMode         The currently selected call detection mode.
+     * @param callDetectionModeGrantedPermissions True if the app has all permissions required for the current call detection mode.
      */
     data class Status(
         val disclaimerAccepted: Boolean,
         val notificationsGranted: Boolean,
         val contactsGranted: Boolean,
-        val phoneStateGranted: Boolean,
-        val callLogGranted: Boolean,
         val batteryExempted: Boolean,
-        val manageOngoingCallsGranted: Boolean,
         val storageSelected: Boolean,
         val shizukuRunning: Boolean,
-        val shizukuPermissionGranted: Boolean
+        val shizukuPermissionGranted: Boolean,
+        val callDetectionMode: CallDetectionMode,
+        val callDetectionModeGrantedPermissions: Set<AppPermission>
     ) {
         /**
          * Returns true only when every prerequisite is satisfied, including the disclaimer.
          */
         fun isComplete(): Boolean {
-            return disclaimerAccepted &&
-                notificationsGranted &&
-                contactsGranted &&
-                phoneStateGranted &&
-                callLogGranted &&
-                batteryExempted &&
-                manageOngoingCallsGranted &&
-                storageSelected &&
-                shizukuRunning &&
-                shizukuPermissionGranted
+            // Global App Permissions
+            val globalsMet = disclaimerAccepted && notificationsGranted &&
+                    contactsGranted && batteryExempted &&
+                    storageSelected && shizukuRunning && shizukuPermissionGranted
+
+            // Check if all required permissions for the current call detection mode are granted.
+            val modeMet = callDetectionModeGrantedPermissions.containsAll(callDetectionMode.requiredPermissions)
+
+            return globalsMet && modeMet
         }
     }
 
@@ -74,20 +73,26 @@ object OnboardingStatus {
      */
     fun getStatus(context: Context, preferences: AppPreferences): Status {
         val storageUri = preferences.getRecordingFolderUri()
+        val currentCallDetectionMode = preferences.getCallDetectionMode()
+
+        // Make a list of all permissions required by the current call detection mode that have been granted.
+        val currentModeDynamicallyGrantedList = currentCallDetectionMode.requiredPermissions.filterTo(mutableSetOf()) {
+            it.isGranted(context)
+        }
+
         return Status(
             disclaimerAccepted       = preferences.isDisclaimerAccepted(),
             notificationsGranted     = PermissionChecks.hasNotificationPermission(context),
             contactsGranted          = PermissionChecks.hasContactsPermission(context),
-            phoneStateGranted        = PermissionChecks.hasPhoneStatePermission(context),
-            callLogGranted           = PermissionChecks.hasCallLogPermission(context),
             batteryExempted          = PermissionChecks.hasBatteryExemption(context),
-            manageOngoingCallsGranted = PermissionChecks.hasManageOngoingCallsAppOps(context),
             storageSelected          = SafHelper.isFolderValid(context, storageUri),
             // Special check here, if the auto-manage option was enabled, users already passed this check, and we can assume app will be able to start/stop Shizuku as needed.
             shizukuRunning           = ShizukuConnectionManager.isAvailable() || preferences.isShizukuAutoManageEnabled(),
             // We provide the context to use the Android Permission system as a fallback. Since if isShizukuAutoManageEnabled is enabled, we can assume the
             // shizuku server may not be running at the moment.
-            shizukuPermissionGranted = ShizukuConnectionManager.hasPermission(context)
+            shizukuPermissionGranted = ShizukuConnectionManager.hasPermission(context),
+            callDetectionMode = currentCallDetectionMode,
+            callDetectionModeGrantedPermissions = currentModeDynamicallyGrantedList
         )
     }
 }

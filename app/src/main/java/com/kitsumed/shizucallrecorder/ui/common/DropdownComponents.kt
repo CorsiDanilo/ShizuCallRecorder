@@ -47,20 +47,22 @@ fun M3DropdownField(
     selected: OptionItem,
     options: List<OptionItem>,
     onOptionSelected: (OptionItem) -> Unit,
-    modifier: Modifier = Modifier
-) {
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    ) {
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded         = expanded,
         onExpandedChange = { expanded = !expanded },
-        modifier         = modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier        = modifier
     ) {
         OutlinedTextField(
             value         = selected.label,
             onValueChange = {},
             readOnly      = true,
             label         = { Text(label) },
+            isError = isError,
             trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors        = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier      = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth()
@@ -122,7 +124,7 @@ fun PreviewM3DropdownField() {
                 selected = options[0],
                 options = options,
                 onOptionSelected = {},
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
             )
         }
     }

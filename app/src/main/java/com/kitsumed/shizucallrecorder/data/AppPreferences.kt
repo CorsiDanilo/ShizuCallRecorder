@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import com.kitsumed.shizucallrecorder.R
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyAudioCodec
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyAudioSource
 import com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionMode
@@ -159,8 +160,10 @@ class AppPreferences(context: Context) {
      *
      * @param key The lowercase string.
      */
-    enum class ThemeMode(val key: String) {
-        SYSTEM("system"), LIGHT("light"), DARK("dark");
+    enum class ThemeMode(val key: String, val displayNameResId: Int) {
+        SYSTEM("system", R.string.settings_theme_mode_system),
+        LIGHT("light", R.string.settings_theme_mode_light),
+        DARK("dark", R.string.settings_theme_mode_dark);
         companion object {
             /**
              * Parses a key string back into an enum constant.

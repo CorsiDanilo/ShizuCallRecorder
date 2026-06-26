@@ -364,26 +364,22 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
             label = stringResource(R.string.settings_language),
             selected = languageOptions.find { it.key == currentLanguage } ?: languageOptions.first(),
             options = languageOptions,
-            onOptionSelected = { actions.setAppLanguage(it.key) }
+            onOptionSelected = { actions.setAppLanguage(it.key) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
 
         val themeOptions = AppPreferences.ThemeMode.entries.map { mode ->
-            val labelRes = when (mode) {
-                AppPreferences.ThemeMode.SYSTEM -> R.string.settings_theme_mode_system
-                AppPreferences.ThemeMode.LIGHT -> R.string.settings_theme_mode_light
-                AppPreferences.ThemeMode.DARK -> R.string.settings_theme_mode_dark
-            }
-            OptionItem(mode.key, stringResource(labelRes))
+            OptionItem(mode.key, stringResource(mode.displayNameResId))
         }
         val defaultThemeMode = AppPreferences.DefaultsValue.THEME_MODE.key
-        
         M3DropdownField(
             label    = stringResource(R.string.settings_theme_mode),
             selected = themeOptions.find { it.key == currentThemeMode.key } 
                 ?: themeOptions.find { it.key == defaultThemeMode } 
                 ?: themeOptions.first(),
             options  = themeOptions,
-            onOptionSelected = { actions.setThemeMode(AppPreferences.ThemeMode.fromKey(it.key)) }
+            onOptionSelected = { actions.setThemeMode(AppPreferences.ThemeMode.fromKey(it.key)) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
         ToggleListItem(
             label           = stringResource(R.string.settings_dynamic_color),
@@ -540,7 +536,8 @@ private fun RecordingSection(
             onOptionSelected = { selectedItem ->
                 val chosenMode = CallDetectionMode.fromKey(selectedItem.key)
                 actions.setCallDetectionMode(chosenMode)
-            }
+            },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
         )
 
         // These settings are only working with InCallService detection mode.
@@ -553,7 +550,7 @@ private fun RecordingSection(
             )
         } else { // Show a warning for PhoneState broadcast method
              WarningCard(
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 title = stringResource(R.string.settings_call_detection_method_warning_title),
                 message = stringResource(R.string.call_detection_mode_phonestate_limited_support))
         }
@@ -717,7 +714,8 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
             label    = stringResource(R.string.settings_audio_source),
             selected = selectedAudio,
             options  = audioSourceOptions,
-            onOptionSelected = { actions.setAudioSource(it.key) }
+            onOptionSelected = { actions.setAudioSource(it.key) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
 
         val codecOptions = ScrcpyAudioCodec.entries
@@ -729,6 +727,7 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
                 ?: codecOptions.first(),
             options  = codecOptions,
             onOptionSelected = { actions.setAudioCodec(it.key) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
         // Show the AAC recommendation if the user has issues.
         // LocalInspectionMode.current is true in Android Preview, it prevents a preview compilation error.
@@ -749,7 +748,8 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
             selected = bitrateOptions.find { it.key == savedBitRate.toString() } 
                 ?: bitrateOptions.first(), // fallback gracefully if bitrate was removed from expected options
             options  = bitrateOptions,
-            onOptionSelected = { actions.setAudioBitRate(it.key.toInt()) }
+            onOptionSelected = { actions.setAudioBitRate(it.key.toInt()) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
     }
 }
