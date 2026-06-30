@@ -124,11 +124,6 @@ tasks.register("writeVersionForCi") {
     }
 }
 
-val ciBuildNumber = providers.gradleProperty("ciBuildNumber").getOrNull() ?: run {
-    logger.lifecycle("[INFO] 'ciBuildNumber' not defined. Defaulting to 'Local'")
-    "Local"
-}
-
 android {
     namespace = "com.kitsumed.shizucallrecorder"
     compileSdk = 36
@@ -140,8 +135,6 @@ android {
         // Keep theses two values hard-coded here and update them per version. (To keep F-Droid compatibility since their parser is very basic)
         versionCode = 13
         versionName = "1.1.0"
-
-        buildConfigField("String", "CI_BUILD_NUMBER", "\"${ciBuildNumber}\"")
 
         buildConfigField("String", "SCRCPY_VERSION", "\"$scrcpyVersion\"")
         buildConfigField("String", "SCRCPY_SERVER_SHA256", "\"$scrcpyServerSha256\"")

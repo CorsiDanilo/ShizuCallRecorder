@@ -116,18 +116,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     /**
      * Retrieves the formatted application version string, including CI run numbers.
      *
-     * @return Formatted string like "Version 1.0 (1) - CI Run #1234" or "Version 1.0 (1)"
+     * @return Formatted string like "Version 1.0 (1)"
      */
     override fun getAppVersion(): String {
         return try {
             val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
-            val base = "Version ${packageInfo.versionName} (${packageInfo.longVersionCode})"
-            val ciBuild = BuildConfig.CI_BUILD_NUMBER
-            if (ciBuild.lowercase() == "local") {
-                "$base - Local Build"
-            } else {
-                "$base - CI Run #$ciBuild"
-            }
+            "Version ${packageInfo.versionName} (${packageInfo.longVersionCode})"
         } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
             "Unknown Version"
         }

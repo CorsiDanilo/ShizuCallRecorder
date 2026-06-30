@@ -123,7 +123,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: ./gradlew assembleDebug -PciBuildNumber=${{ github.run_id }} --stacktrace
+        run: ./gradlew assembleDebug --stacktrace
 
       # Build Release APK (for Release/Pre-Release types)
       # Uses signing configuration from secrets
@@ -134,7 +134,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease -PciBuildNumber=${{ github.run_id }} --stacktrace
+        run: ./gradlew assembleRelease --stacktrace
 
       # Rename and move APK with version for clarity
       - name: Prepare APK Artifact
