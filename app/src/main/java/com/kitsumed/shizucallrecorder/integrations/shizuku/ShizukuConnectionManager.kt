@@ -21,7 +21,7 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import com.kitsumed.shizucallrecorder.BuildConfig
 import com.kitsumed.shizucallrecorder.IShellService
-import com.kitsumed.shizucallrecorder.services.ShellService
+import com.kitsumed.shizucallrecorder.services.shell.ShellService
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine

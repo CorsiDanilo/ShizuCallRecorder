@@ -6,16 +6,11 @@
  *  This software is distributed WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-package com.kitsumed.shizucallrecorder.services
+package com.kitsumed.shizucallrecorder.services.shell
 
-import android.content.Context
 import android.net.LocalServerSocket
 import android.net.LocalSocket
 import android.os.ParcelFileDescriptor
-import android.util.Log
-import androidx.annotation.Keep
-import com.kitsumed.shizucallrecorder.ILogCallback
-import com.kitsumed.shizucallrecorder.IShellService
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyAudioCodec
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyAudioSource
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyConfig
@@ -28,48 +23,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
 import java.io.InterruptedIOException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.system.exitProcess
 
-/**
- * ShellService runs inside the privileged shell process (UID 2000 or 0) managed by Shizuku.
- *
- * By running under the app shell as ADB or root via Shizuku, we can
- * launch scrcpy-server with app_process and capture audio that a normal app cannot access.
- *
- * AI generated Overview:
- *
- *   ┌─────────────────────────────────────────────────────────────┐
- *   │  Shell Process (UID 2000 or 0)                              │
- *   │                                                             │
- *   │  ShellService (this class, AIDL stub)                       │
- *   │    │                                                        │
- *   │    ├── launches  scrcpy-server (app_process)                │
- *   │    │     └── connects to  LocalServerSocket                 │
- *   │    │                          │                             │
- *   │    ├── AudioRelayCoroutine ◄──┘  (socket → pipe)            │
- *   │    │         │                                              │
- *   │    │     Pipe[1] write-end (kept in Shell)                  │
- *   │    │     Pipe[0] read-end  ───────────────► App Process     │
- *   │    │                                          ScrcpyClient  │
- *   │    ├── LogConsumerCoroutine   (drain stdout)                │
- *   │    └── ProcessMonitorCoroutine (wait for exit)              │
- *   └─────────────────────────────────────────────────────────────┘
- *
- * Shizuku requirements:
- *  • Must have a no-arg constructor AND a single-Context constructor (Shizuku v13+).
- *  • Must be annotated with [@Keep] so ProGuard/R8 does not remove/rename the class.
- *  • [destroy] must call [exitProcess] to terminate the shell process when Shizuku asks.
- */
-@Keep
-class ShellService : IShellService.Stub {
-
+class ShellAudioPipeline {
     private companion object {
-        const val TAG = "SCR:ShellService"
+        const val TAG = "SCR:ShellAudioPipeline"
 
         /**
          * Size of the byte buffer used when copying data from the socket to the pipe.
@@ -91,7 +55,7 @@ class ShellService : IShellService.Stub {
     /**
      * Atomic flag that controls the relay loop and prevents concurrent sessions.
      *
-     * Why [AtomicBoolean]?  [stopRecording] can be called from any thread (e.g. the AIDL
+     * Why [java.util.concurrent.atomic.AtomicBoolean]?  [stopRecording] can be called from any thread (e.g. the AIDL
      * thread pool) while [spawnAudioRelayCoroutine]'s loop runs on a coroutine.  AtomicBoolean
      * provides a lock-free compare-and-set operation that is visible across threads without
      * needing a `synchronized` block.
@@ -113,7 +77,7 @@ class ShellService : IShellService.Stub {
 
     /**
      * Write end of the kernel pipe.  The relay coroutine copies bytes from the scrcpy-server
-     * socket into this end; the app process holds the read end wrapped in a [ParcelFileDescriptor].
+     * socket into this end; the app process holds the read end wrapped in a [android.os.ParcelFileDescriptor].
      *
      * **IMPORTANT**: Do NOT close this before the scrcpy-server process exits. The server may be
      * buffering its final audio frame and will write it after receiving SIGTERM. Closing the
@@ -135,30 +99,8 @@ class ShellService : IShellService.Stub {
      */
     private var audioPipeRelayJob: Job? = null
 
-    // ---- Shizuku-required constructors
-
     /**
-     * No-arg constructor required by older versions of Shizuku.
-     */
-    @Keep constructor() : this(null)
-
-    /**
-     * Context constructor required by Shizuku v13+ for user-service instantiation.
-     * The context is the shell process's context (not the app's).
-     *
-     * @param context The shell-process [Context] provided by Shizuku, or null on older versions.
-     */
-    @Keep constructor(context: Context?) {
-        Log.i(TAG,"===============================\n" +
-             "ShellService process started!\n" +
-             "Running as UID=(${android.os.Process.myUid()})\n" +
-             "===============================")
-    }
-
-    // -------- IShellService AIDL implementation
-
-    /**
-     * Starts the audio-capture pipeline.  Called from the app process via Binder IPC.
+     * Starts the audio-capture pipeline.
      *
      * Steps performed in this method (all in the shell process):
      *  1. Guard: reject if already recording.
@@ -173,21 +115,18 @@ class ShellService : IShellService.Stub {
      * @param audioCodec         scrcpy audio_codec parameter (e.g. "opus", "aac").
      * @param audioBitRate       scrcpy audio_bit_rate in bps (e.g. 16000 for 16 kbps Opus).
      * @param serverPath      Absolute path to scrcpy-server.jar in shared storage.
-     * @param enableVerboseLogging  When true, logs relay throughput every second.
+     * @param isDebuggingModeEnabled  When true, logs relay throughput every second.
      * @return The read-end [ParcelFileDescriptor] of the audio pipe, or null on failure.
      */
-    override fun startRecording(
+    fun startCapture(
         audioSource: String,
         audioCodec: String,
         audioBitRate: Int,
         serverPath: String,
-        isDebuggingModeEnabled: Boolean,
-        listener: ILogCallback
-    ): ParcelFileDescriptor? {
-        AppLogger.initAsRemote(listener, isDebuggingModeEnabled)
-
+        isDebuggingModeEnabled: Boolean
+    ): ParcelFileDescriptor?  {
         if (isRecordingActive.get()) {
-            AppLogger.w(TAG,"startRecording() rejected: a session is already active")
+            AppLogger.w(TAG,"startCapture() rejected: a session is already active")
             return null
         }
 
@@ -252,14 +191,14 @@ class ShellService : IShellService.Stub {
             return pipeReadEnd // ← returned to RecordingForegroundService via Binder
         } catch (e: Exception) {
             AppLogger.e(TAG,"Critical failure during pipeline startup: ${e.message}", e)
-            stopRecording() // Best-effort cleanup of any partially-allocated resources.
+            stopCapture() // Best-effort cleanup of any partially-allocated resources.
             return null
         }
+
     }
 
     /**
-     * Stops the recording pipeline and releases all resources.  Called from the app process
-     * via Binder IPC, and also from internal coroutines when an error is detected.
+     * Stops the recording pipeline and releases all resources.
      *
      * Cleanup order matters:
      *  1. Set the atomic flag to false first so the relay loop exits on its next iteration.
@@ -269,7 +208,7 @@ class ShellService : IShellService.Stub {
      *  5. Close the server socket.
      *  6. Close the pipe write-end LAST so scrcpy-server can write its final bytes first.
      */
-    override fun stopRecording() {
+    fun stopCapture() {
         // compareAndSet(true, false): atomically checks that we ARE recording and clears the flag.
         // Returns false (and skips the body) if we were already stopped, preventing double-free.
         if (!isRecordingActive.compareAndSet(true, false)) {
@@ -291,9 +230,9 @@ class ShellService : IShellService.Stub {
         // Wait for the relay job to copy remaining socket data to the pipe for downstream app (Time-bounded).
         AppLogger.d(TAG,"Waiting for relay coroutine to finish copying late bytes...")
         runCatching {
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 // Time-bounded wait to strictly prevent any infinite loop if EOF is never reached or take too long
-                kotlinx.coroutines.withTimeoutOrNull(2000L) { // 2s timeout
+                withTimeoutOrNull(2000L) { // 2s timeout
                     audioPipeRelayJob?.join()
                 }
             }
@@ -324,39 +263,10 @@ class ShellService : IShellService.Stub {
         audioPipeRelayJob = null
 
         AppLogger.i(TAG,"Recording pipeline stopped and all ShellService resources were released")
+
     }
 
-    /** Returns whether a recording session is currently active (thread-safe via AtomicBoolean). */
-    override fun isRecording(): Boolean = isRecordingActive.get()
-
-    override fun grantAppOps(packageName: String, opName: String, userProfileId: Int): Boolean {
-        try {
-            AppLogger.i(TAG, "Executing AppOps set --user $userProfileId $packageName $opName allow")
-            val process = ProcessBuilder("appops", "set", "--user", userProfileId.toString(), packageName, opName, "allow").start()
-            val errorOutput = process.errorStream.bufferedReader().readText().trim()
-            val inputOutput = process.inputStream.bufferedReader().readText().trim()
-            val exitCode = process.waitFor()
-            AppLogger.i(TAG, "grantAppOps completed with exit code $exitCode. Output: ${inputOutput.ifBlank { "Empty" }}, Error: ${errorOutput.ifBlank { "Empty" }}")
-            // We return false if the exit code is non-zero or if there was any error output, indicating that the operation failed.
-            return (exitCode == 0 && errorOutput.isBlank())
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "Error granting AppOps $opName to $packageName: ${e.message}", e)
-        }
-        return false
-    }
-
-    /**
-     * Called by Shizuku when it wants to shut down this user service.
-     * MUST call [exitProcess] so the entire shell process is terminated; otherwise Shizuku may
-     * be unable to clean up the process, and it will linger in memory.
-     */
-    override fun destroy() {
-        AppLogger.i(TAG,"ShellService.destroy() – terminating shell process")
-        stopRecording()
-        exitProcess(0)
-    }
-
-    // -- Private coroutine helpers
+    // Private couroutine helpers
 
     /**
      * Launches a coroutine that:
@@ -421,7 +331,7 @@ class ShellService : IShellService.Stub {
                 // If we exit the relay (e.g. server crash), trigger a full stop so the app-side
                 // muxer finalises the file.
                 AppLogger.d(TAG,"AudioRelayCoroutine finished")
-                stopRecording()
+                stopCapture()
             }
         }
     }
@@ -469,7 +379,7 @@ class ShellService : IShellService.Stub {
                 val exitCode = process.waitFor()
                 if (exitCode != 0 && isRecordingActive.get()) {
                     AppLogger.e(TAG,"ProcessMonitorCoroutine: scrcpy-server crashed (exit code $exitCode)")
-                    stopRecording() // Trigger cleanup and file finalisation.
+                    stopCapture() // Trigger cleanup and file finalisation.
                 } else {
                     AppLogger.i(TAG,"ProcessMonitorCoroutine: scrcpy-server exited normally (code $exitCode)")
                 }
@@ -481,4 +391,5 @@ class ShellService : IShellService.Stub {
             }
         }
     }
+
 }
