@@ -10,6 +10,7 @@ package com.kitsumed.shizucallrecorder.services.callDetection.incall
 
 import android.os.Build
 import android.telecom.Call
+import android.telecom.Connection
 import android.telecom.InCallService
 import android.telecom.TelecomManager
 import androidx.annotation.RequiresApi
@@ -101,7 +102,7 @@ class InCallService : InCallService() {
         // Assign and register tracking handles
         activeTrackedCall = call
         call.registerCallback(callCallback)
-        AppLogger.i(TAG, "Primary call session detected and tracking initialized. Current state is: ${call.details.state}")
+        AppLogger.i(TAG, "Primary call session detected and tracking initialized. Current state is: ${Connection.stateToString(call.details.state)} (${call.details.state})")
 
         // Edge Case: If the call is already active when we receive it
         if (call.details.state == Call.STATE_ACTIVE) {
@@ -141,7 +142,9 @@ class InCallService : InCallService() {
         AppLogger.v(TAG, "Received onStateChanged callback for call: ${call.details}, new state: $state")
         // Restrict state change handling to the primary tracked call. This prevents issues with parallel calls (not supported in this implementation).
         if (call != activeTrackedCall) return
-        AppLogger.d(TAG, "Primary call state changed to from ${call.details.state} to $state")
+        AppLogger.d(TAG, "Primary call state changed to from ${Connection.stateToString(call.details.state)} (${call.details.state}) to ${Connection.stateToString(state)} (${state})")
+
+
 
         if (state == Call.STATE_ACTIVE) {
             // Stop here if we've already executed the RecordingDecision pipeline (so it started the foreground service)
