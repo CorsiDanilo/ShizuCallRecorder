@@ -112,7 +112,7 @@ sealed class AppPermission(
          * Grants a permission via the Shizuku server, following the escalation chain until the permission is granted or all steps are exhausted.
          *
          * @param context The application context to which the permission is being granted.
-         * @return True if the permission was successfully granted in one of the escalation chain steps, false otherwise.
+         * @return True if the permission was successfully granted in one of the escalation chain steps, false otherwise. Also returns false if Shizuku is not available.
          */
         suspend fun grant(context: Context): Boolean {
             val packageName = context.packageName
