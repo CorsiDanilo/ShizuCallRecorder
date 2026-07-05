@@ -34,6 +34,7 @@ import com.kitsumed.shizucallrecorder.R
  * @property minApi          Minimum Android API level required (inclusive).
  * @property maxApi          Maximum Android API level supported (inclusive), or null for no upper bound.
  * @property isDebugOnly     `true` if this source should only appear when debug mode is active.
+ * @property isVoipCompatible `true` if this source can capture audio from VoIP/self-managed calls.
  */
 enum class ScrcpyAudioSource(
     val cliKey: String,
@@ -41,7 +42,8 @@ enum class ScrcpyAudioSource(
     val descriptionResId: Int,
     val minApi: Int,
     val maxApi: Int?,
-    val isDebugOnly: Boolean
+    val isDebugOnly: Boolean,
+    val isVoipCompatible: Boolean = false
 ) {
 
     /**
@@ -113,7 +115,8 @@ enum class ScrcpyAudioSource(
         descriptionResId  = R.string.audio_source_output_description,
         minApi            = 19,
         maxApi            = null,
-        isDebugOnly       = true
+        isDebugOnly       = true,
+        isVoipCompatible  = true
     ),
 
 
@@ -129,7 +132,8 @@ enum class ScrcpyAudioSource(
         descriptionResId  = R.string.audio_source_playback_description,
         minApi            = 29,
         maxApi            = null,
-        isDebugOnly       = true
+        isDebugOnly       = true,
+        isVoipCompatible  = true
     ),
 
     /**

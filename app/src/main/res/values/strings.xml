@@ -219,6 +219,8 @@
     <string name="audio_bitrate_kbps" translatable="false">%1$d kbps</string>
 
     <string name="settings_audio_source">Audio source</string>
+    <string name="settings_voip_audio_source">VoIP audio source</string>
+    <string name="settings_voip_audio_source_description">Audio source used when recording VoIP calls (e.g. Teams, Meet, WhatsApp). These calls do not use the carrier audio path.</string>
     <string name="audio_source_voice_comm" translatable="false">Voice communication mic</string>
     <string name="audio_source_voice_comm_description">Microphone audio source tuned for voice communications. Built-in echo cancellation.</string>
 

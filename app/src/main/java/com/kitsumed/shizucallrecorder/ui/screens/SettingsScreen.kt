@@ -808,8 +808,12 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
 
     val isDebugEnabled = remember(updateTrigger) { preferences.isDebugEnabled() }
     val audioSource = remember(updateTrigger) { preferences.getAudioSource() }
+    val voipAudioSource = remember(updateTrigger) { preferences.getVoipAudioSource() }
     val audioCodec = remember(updateTrigger) { preferences.getAudioCodec() }
     val savedBitRate = remember(updateTrigger) { preferences.getAudioBitRate() }
+    val recordThirdPartyCalls = remember(updateTrigger) { preferences.isRecordThirdPartyCallsEnabled() }
+    val callDetectionMode = remember(updateTrigger) { preferences.getCallDetectionMode() }
+    val showVoipSource = recordThirdPartyCalls && callDetectionMode == CallDetectionMode.InCallService
         
     SettingsSection(title = stringResource(R.string.settings_section_audio)) {
         val currentSdk = Build.VERSION.SDK_INT
@@ -839,6 +843,40 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
             onOptionSelected = { actions.setAudioSource(it.key) },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
+
+        // VoIP audio source dropdown — only visible when third-party call recording is enabled
+        // and InCallService detection mode is active (the only mode that can detect VoIP calls).
+        if (showVoipSource) {
+            val voipSourceOptions = ScrcpyAudioSource.entries
+                .filter { it.isVoipCompatible }
+                .map { source ->
+                    OptionItem(
+                        key         = source.cliKey,
+                        label       = stringResource(source.titleResId),
+                        description = stringResource(source.descriptionResId),
+                        enabled     = currentSdk >= source.minApi &&
+                                      (source.maxApi == null || currentSdk <= source.maxApi)
+                    )
+                }
+
+            val selectedVoipAudio = voipSourceOptions.find { it.key == voipAudioSource }
+                ?: voipSourceOptions.first()
+
+            M3DropdownField(
+                label    = stringResource(R.string.settings_voip_audio_source),
+                selected = selectedVoipAudio,
+                options  = voipSourceOptions,
+                onOptionSelected = { actions.setVoipAudioSource(it.key) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+
+            Text(
+                text     = stringResource(R.string.settings_voip_audio_source_description),
+                style    = MaterialTheme.typography.labelSmall,
+                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+            )
+        }
 
         val codecOptions = ScrcpyAudioCodec.entries
             .map { OptionItem(it.cliKey, stringResource(it.titleResId)) }
@@ -1236,6 +1274,7 @@ private fun SettingsScreenPreview() {
             override fun setIgnoreContactsModeIncoming(modeEnum: AppPreferences.IgnoreContactsMode) {}
             override fun setIgnoreContactsModeOutgoing(modeEnum: AppPreferences.IgnoreContactsMode) {}
             override fun setAudioSource(source: String) {}
+            override fun setVoipAudioSource(source: String) {}
             override fun setAudioCodec(codec: String) {}
             override fun setAudioBitRate(bitRate: Int) {}
             override fun setThemeMode(mode: AppPreferences.ThemeMode) {}

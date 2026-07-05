@@ -57,6 +57,7 @@ interface SettingsActions {
     fun setIgnoreContactsModeIncoming(modeEnum: AppPreferences.IgnoreContactsMode)
     fun setIgnoreContactsModeOutgoing(modeEnum: AppPreferences.IgnoreContactsMode)
     fun setAudioSource(source: String)
+    fun setVoipAudioSource(source: String)
     fun setAudioCodec(codec: String)
     fun setAudioBitRate(bitRate: Int)
     fun setThemeMode(mode: AppPreferences.ThemeMode)
@@ -228,6 +229,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      */
     override fun setAudioSource(source: String) {
         preferences.setAudioSource(source)
+        refresh()
+    }
+
+    /** Saves the audio source to use for VoIP/self-managed call recording.
+     *
+     * @param source The audio source key (e.g. "output", "playback").
+     */
+    override fun setVoipAudioSource(source: String) {
+        preferences.setVoipAudioSource(source)
         refresh()
     }
 

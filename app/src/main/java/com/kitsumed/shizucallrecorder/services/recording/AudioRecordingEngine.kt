@@ -129,9 +129,13 @@ class AudioRecordingEngine {
 
         val codecEnum = ScrcpyAudioCodec.fromKey(preferences.getAudioCodec())
         val bitRate = preferences.getAudioBitRate().takeIf { it > 0 } ?: codecEnum.defaultBitRate
-        val audioSourceEnum = ScrcpyAudioSource.fromKey(preferences.getAudioSource())
+        val audioSourceEnum = if (metadata.isVoipCall) {
+            ScrcpyAudioSource.fromKey(preferences.getVoipAudioSource())
+        } else {
+            ScrcpyAudioSource.fromKey(preferences.getAudioSource())
+        }
 
-        AppLogger.i(TAG, "Starting recording pipeline: source=${audioSourceEnum.cliKey} codec=${codecEnum.cliKey} bitrate=$bitRate")
+        AppLogger.i(TAG, "Starting recording pipeline: source=${audioSourceEnum.cliKey} codec=${codecEnum.cliKey} bitrate=$bitRate isVoip=${metadata.isVoipCall}")
 
         val fileName = RecordingFileNameFormatter.formatFileName(context, metadata, codecEnum)
 

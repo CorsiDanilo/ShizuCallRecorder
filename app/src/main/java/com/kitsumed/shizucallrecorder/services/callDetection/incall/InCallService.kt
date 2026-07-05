@@ -172,18 +172,20 @@ class InCallService : InCallService() {
             // Name of the app package responsible for this call (e.g. system dialer, default dialer, or a third-party app)
             val packageName = details.accountHandle.componentName.packageName
 
-            val rawCallData = RawCallData(
-                rawPhoneNumber = PhoneNumberManager.normalisePhoneNumber(rawNumber),
-                direction = direction,
-                osProvidedCallerName = oscallerName,
-                packageName = packageName
-            )
-
-            AppLogger.i(TAG, "Primary call became ACTIVE. Triggering Decision Engine Pipeline.")
             val isSelfManaged = details.hasProperty(Call.Details.PROPERTY_SELF_MANAGED)
             val isVoip = details.hasProperty(Call.Details.PROPERTY_VOIP_AUDIO_MODE)
             val isWifiCall = details.hasProperty(Call.Details.PROPERTY_WIFI)
             AppLogger.d(TAG, "Primary call details - isSelfManaged: $isSelfManaged, isVoip: $isVoip, isWifiCall: $isWifiCall")
+
+            val rawCallData = RawCallData(
+                rawPhoneNumber = PhoneNumberManager.normalisePhoneNumber(rawNumber),
+                direction = direction,
+                osProvidedCallerName = oscallerName,
+                packageName = packageName,
+                isVoipCall = isSelfManaged || isVoip
+            )
+
+            AppLogger.i(TAG, "Primary call became ACTIVE. Triggering Decision Engine Pipeline. isVoipCall=${rawCallData.isVoipCall}")
 
             serviceScope.launch {
                 val intentSentSuccessfully = RecordingDecisionEngine.getInstance(this@InCallService).executeDecisionPipeline(rawCallData)

@@ -68,6 +68,7 @@ class AppPreferences(context: Context) {
         
         // --- Audio/Scrcpy Quality ---
         val AUDIO_SOURCE = ScrcpyAudioSource.VOICE_CALL.cliKey
+        val VOIP_AUDIO_SOURCE = ScrcpyAudioSource.OUTPUT.cliKey
         val AUDIO_CODEC = ScrcpyAudioCodec.OPUS.cliKey
 
         val AUDIO_BITRATE = ScrcpyAudioCodec.OPUS.defaultBitRate
@@ -125,7 +126,8 @@ class AppPreferences(context: Context) {
         SHIZUKU_KEEP_ALIVE("shizuku_keep_alive"),
         SHIZUKU_AUTH_KEY("shizuku_auth_key"),
         CALL_DETECTION_MODE("call_detection_mode"),
-        RECORD_THIRD_PARTY_CALLS("record_third_party_calls");
+        RECORD_THIRD_PARTY_CALLS("record_third_party_calls"),
+        VOIP_AUDIO_SOURCE("voip_audio_source");
     }
 
     // -------- Nested enums
@@ -361,6 +363,12 @@ class AppPreferences(context: Context) {
     
     /** Sets the configured audio source. */
     fun setAudioSource(source: String) = setString(Key.AUDIO_SOURCE, source)
+
+    /** Gets the configured VoIP audio source for scrcpy integration. Used when recording VoIP/self-managed calls. */
+    fun getVoipAudioSource() = getString(Key.VOIP_AUDIO_SOURCE, DefaultsValue.VOIP_AUDIO_SOURCE) ?: DefaultsValue.VOIP_AUDIO_SOURCE
+
+    /** Sets the configured VoIP audio source. */
+    fun setVoipAudioSource(source: String) = setString(Key.VOIP_AUDIO_SOURCE, source)
 
     /** Gets the configured audio codec for scrcpy integration. */
     fun getAudioCodec() = getString(Key.AUDIO_CODEC, DefaultsValue.AUDIO_CODEC) ?: DefaultsValue.AUDIO_CODEC
