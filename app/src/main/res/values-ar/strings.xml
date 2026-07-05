@@ -174,4 +174,5 @@
     <string name="settings_debug_mode">تفعيل وضع التصحيح</string>
     <string name="settings_debug_mode_description">عرض خيارات المطورين، وتعطيل إخفاء السجلات.</string>
     <string name="settings_debug_caller_number">تصحيح الأخطاء رقم هاتف</string>
+    <string name="general_share">مشاركة</string>
 </resources>

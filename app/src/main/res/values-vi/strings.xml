@@ -134,4 +134,5 @@
     <string name="recording_shizuku_not_started">Tiến trình Shizuku-Server đã dừng. Vui lòng khởi động Shizuku và đảm bảo nó luôn hoạt động khi ứng dụng cần ghi âm.</string>
     <string name="recording_shizuku_permission_denied">Vui lòng cho phép ứng dụng sử dụng Shizuku. Quyền truy cập đã bị từ chối.</string>
     <string name="recording_shizuku_auth_key_missing">Thiếu mã xác thực Shizuku Intents. Vui lòng nhập mã này trong phần cài đặt ứng dụng.</string>
+    <string name="general_share">Chia sẻ</string>
 </resources>

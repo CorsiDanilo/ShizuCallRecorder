@@ -174,4 +174,5 @@
     <string name="recording_shizuku_not_started">O processo do Shizuku-Server foi interrompido. Inicie o Shizuku e certifique-se de que ele sempre possa ser executado quando a app desejar gravar áudio.</string>
     <string name="recording_shizuku_permission_denied">Por favor, permita que a aplicação use Shizuku. A permissão foi negada.</string>
     <string name="recording_shizuku_auth_key_missing">A chave de autenticação do Shizuku Intents falta. Por favor, insira-o nas configurações da app.</string>
+    <string name="general_share">Partilhar</string>
 </resources>

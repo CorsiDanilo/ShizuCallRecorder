@@ -174,4 +174,5 @@
     <string name="recording_shizuku_not_started">Shizuku-Server 程序已停止。請啟動 Shizuku，並確保應用程式需要錄製音訊時，Shizuku 隨時都能執行。</string>
     <string name="recording_shizuku_permission_denied">請允許本應用程式使用 Shizuku。權限遭到拒絕。</string>
     <string name="recording_shizuku_auth_key_missing">缺少 Shizuku Intent 驗證金鑰。請在應用程式設定中輸入金鑰。</string>
+    <string name="general_share">分享</string>
 </resources>

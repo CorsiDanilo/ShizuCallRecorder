@@ -174,4 +174,5 @@
     <string name="placeholder_caller_name_desc">Arayan kişinin adı; önce kişi listesine bakın, varsa telekom operatörünün Arayan Kimliği (CallerID) bilgisini kullanın.</string>
     <string name="placeholder_package_name_desc">Aramayı başlatan uygulamanın adı veya paket adı.</string>
     <string name="settings_open_github_Wiki">Wiki\'yi görüntüle</string>
+    <string name="general_share">Paylaş</string>
 </resources>

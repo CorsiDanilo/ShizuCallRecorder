@@ -113,4 +113,5 @@
     <string name="settings_debug_logging_step_warning">共有する前にセンシティブな情報が含まれていないか確認してください。終わり次第ログ保存を無効にしてください。</string>
     <string name="settings_debug_logging_step_warning_no_redaction">⚠️ デバックモードが有効です。ログはマスキングされません。</string>
     <string name="recording_toast_paused">録音が一時停止されました。</string>
+    <string name="general_share">共有</string>
 </resources>

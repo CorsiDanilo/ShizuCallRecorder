@@ -174,4 +174,5 @@
     <string name="placeholder_date_hours_desc">La hora actual, en formato de 24 horas y con cero a la izquierda (00–23)</string>
     <string name="placeholder_date_minutes_desc">Los minutos actuales, con cero a la izquierda (00–59)</string>
     <string name="placeholder_date_seconds_desc">Los segundos actuales, con cero a la izquierda (00–59)</string>
+    <string name="general_share">Compartir</string>
 </resources>

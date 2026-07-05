@@ -136,4 +136,5 @@
     <string name="placeholder_cross_country_desc">Указывает, является ли вызов международным (да/нет)</string>
     <string name="recording_unexpected_error">Во время записи произошла непредвиденная ошибка. Пожалуйста, сообщите об этом вместе с инструкциями по воспроизведению и логами из приложения.</string>
     <string name="settings_shizuku_keep_alive_desc">Не отправлять ключ авторизации для остановки</string>
+    <string name="general_share">Поделиться</string>
 </resources>

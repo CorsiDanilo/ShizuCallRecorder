@@ -1,0 +1,90 @@
+name: Android Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published, created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Upload Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          validate-wrappers: true
+          cache-provider: basic
+          gradle-version: '9.4.1'
+
+      - name: Generate Missing Gradle Wrapper Scripts
+        env:
+          SKIP_SIGNING: true
+        run: gradle wrapper
+
+      - name: Extract Version via Gradle Task
+        id: get-version
+        env:
+          SKIP_SIGNING: true
+        run: |
+          ./gradlew writeVersionForCi
+          VERSION=$(cat app/build/outputs/version.txt)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Decode Keystore
+        env:
+          ENCODED_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+        run: |
+          # Decode the keystore from base64 secret, ignoring any garbage/newlines
+          echo "$ENCODED_KEYSTORE" | base64 --decode --ignore-garbage > app/release-keystore.jks
+
+      - name: Build Release APK
+        env:
+          KEYSTORE_FILE: release-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare and Hash APK Artifact
+        run: |
+          VERSION="${{ steps.get-version.outputs.VERSION }}"
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "Error: Release APK not found at $APK_PATH"
+            exit 1
+          fi
+          cp "$APK_PATH" "ShizuCallRecorder-${VERSION}.apk"
+          sha256sum "ShizuCallRecorder-${VERSION}.apk" > "ShizuCallRecorder-${VERSION}.apk.sha256"
+
+      - name: Clean up Signing Files
+        if: always()
+        run: rm -f app/release-keystore.jks
+
+      - name: Upload Release Artifact
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk.sha256
+          generate_release_notes: true
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
