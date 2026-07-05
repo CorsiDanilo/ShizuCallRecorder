@@ -176,6 +176,9 @@ android {
                 {
                     signingConfig = signingConfigs.getByName("ci-release")
                 }
+            } else {
+                // Sign with debug key when compiling locally so the APK is installable
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }

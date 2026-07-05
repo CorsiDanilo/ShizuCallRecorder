@@ -37,3 +37,14 @@
 -assumenosideeffects class com.kitsumed.shizucallrecorder.utils.AppLogger {
   v(...);
 }
+
+# Keep Room database constructors to avoid crash on initialization
+-keep class * extends androidx.room.RoomDatabase {
+    <init>(...);
+}
+
+# Keep WorkManager worker constructors
+-keep class * extends androidx.work.ListenableWorker {
+    <init>(...);
+}
+
