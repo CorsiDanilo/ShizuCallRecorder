@@ -62,16 +62,30 @@ jobs:
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Prepare and Hash APK Artifact
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare and Hash APK Artifacts
         run: |
           VERSION="${{ steps.get-version.outputs.VERSION }}"
-          APK_PATH="app/build/outputs/apk/release/app-release.apk"
-          if [ ! -f "$APK_PATH" ]; then
-            echo "Error: Release APK not found at $APK_PATH"
+
+          # Release APK
+          RELEASE_APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$RELEASE_APK_PATH" ]; then
+            echo "Error: Release APK not found at $RELEASE_APK_PATH"
             exit 1
           fi
-          cp "$APK_PATH" "ShizuCallRecorder-${VERSION}.apk"
+          cp "$RELEASE_APK_PATH" "ShizuCallRecorder-${VERSION}.apk"
           sha256sum "ShizuCallRecorder-${VERSION}.apk" > "ShizuCallRecorder-${VERSION}.apk.sha256"
+
+          # Debug APK
+          DEBUG_APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$DEBUG_APK_PATH" ]; then
+            echo "Error: Debug APK not found at $DEBUG_APK_PATH"
+            exit 1
+          fi
+          cp "$DEBUG_APK_PATH" "ShizuCallRecorder-${VERSION}-debug.apk"
+          sha256sum "ShizuCallRecorder-${VERSION}-debug.apk" > "ShizuCallRecorder-${VERSION}-debug.apk.sha256"
 
       - name: Clean up Signing Files
         if: always()
@@ -84,6 +98,8 @@ jobs:
           files: |
             ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk
             ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk.sha256
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-debug.apk
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-debug.apk.sha256
           generate_release_notes: true
           body_path: CHANGELOG.md
         env:
