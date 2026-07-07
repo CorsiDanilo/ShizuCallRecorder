@@ -57,7 +57,7 @@ class AudioRecordingEngine {
     /** Writes scrcpy decoded audio packets into the output container (OPUS/AAC). */
     var scrcpyAudioMuxer: ScrcpyAudioMuxer? = null
 
-    /** Metadata captured during the [startPipeline] and locked. Used for checks in [release] if we need to query call logs for the final file name if phone number is empty. */
+    /** Metadata captured during the [startPipeline] and locked. Used for checks in [release]. */
     var initializationMetadata: EnrichedCallData? = null
         set(value) {
             if (field == null) {

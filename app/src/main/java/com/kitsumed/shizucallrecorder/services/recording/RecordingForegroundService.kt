@@ -335,48 +335,23 @@ class RecordingForegroundService : Service() {
         }
         AppLogger.i(TAG, "Stopping active recording session, remove foreground notification and stopping service...")
 
-        // Capture metadata before releasing resources, in case we need to query call logs for the final file name if phone number is empty.
-        val originalMetadata = activeSession.initializationMetadata
-        val uriToRename = activeSession.currentRecordingUri
-
         // Release all resources held by the recording session, and stop the remote shell service, finalizing the recording file.
         activeSession.release(shellService)
 
-        // If the initialization metadata do not contain a phone number, we attempt to query the call log as a fallback.
-        // TODO: Remove this fallback logic once we have a more reliable way to get phone number (using Shizuku and hidden api)
-        if (originalMetadata != null && originalMetadata.normalisedPhoneNumber.isNullOrBlank() && uriToRename != null) {
-            AppLogger.d(TAG, "Recording ended without a phone number. Querying CallLog as a fallback to get more information...")
-            // We use GlobalScope/IO because the Service's scope might be cancelled immediately in onDestroy.
-            // Android gives the process some time to live, so this is safe for a few seconds.
-            CoroutineScope(Dispatchers.IO).launch {
-                val rawNumber = tryGetFinalNumberFromLog(applicationContext, originalMetadata.direction) ?: ""
-                val sanitizedRaw = PhoneNumberManager.normalisePhoneNumber(rawNumber)
-
-                val finalNumber = if (sanitizedRaw.isNotBlank()) {
-                    val parsed = phoneNumberManager.parsePhoneNumber(sanitizedRaw)
-                    if (parsed != null) {
-                        phoneNumberManager.formatToE164(parsed)
+        // If the user has enabled post-recording file actions, show a notification with options.
+        if (appPreferences.isPostRecordingFileActionsNotificationEnabled()) {
+            activeSession.currentRecordingUri?.let { filePathUri ->
+                activeSession.initializationMetadata?.let { metadata ->
+                    // Ensure the file was written and exists
+                    val docFile = DocumentFile.fromSingleUri(applicationContext, filePathUri)
+                    if (docFile != null && docFile.exists() && docFile.length() > 0) {
+                        AppLogger.d(TAG, "Showing post-recording notification for user actions.")
+                        notificationHelper.showPostCallNotification(filePathUri, metadata)
                     }
-                    sanitizedRaw
-                } else {
-                    sanitizedRaw
-                }
-
-                if (finalNumber.isNotBlank()) {
-                    val updatedMeta = originalMetadata.copy(normalisedPhoneNumber = finalNumber)
-                    val newName = RecordingFileNameFormatter.formatFileName(applicationContext, updatedMeta, activeSession.currentCodecEnum)
-                    try {
-                        DocumentFile.fromSingleUri(applicationContext, uriToRename)
-                            ?.renameTo(newName)
-                        AppLogger.d(TAG, "Successfully renamed wrongly detected anonymous recording to: $newName")
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG, "Failed to rename file using CallLog fallback", e)
-                    }
-                } else {
-                    AppLogger.d(TAG, "Call log confirmed the call is anonymous, or no actual number was found. Keeping file name as is.")
                 }
             }
         }
+
         currentState = RecordingServiceState.Standby(null)
         AppLogger.i(TAG, "The recording session has been stopped and resources have been released. Stopping foreground service. Goodbye >3")
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -384,46 +359,10 @@ class RecordingForegroundService : Service() {
     }
 
     /**
-     * Tries to query the call log for the most recent call matching the given direction, and returns the associated phone number.
-     * @return The phone number from the most recent call log entry matching the direction, or null if no valid entry is found after multiple attempts.
-     */
-    private suspend fun tryGetFinalNumberFromLog(
-        context: Context,
-        direction: CallDirection?
-    ): String? {
-        val typeSelection = when (direction) {
-            // We do not want to include missed or rejected calls here since they are useless to us, and in a Dual-call scenario could lead to picking the wrong number.
-            CallDirection.INCOMING -> "${CallLog.Calls.TYPE} = ${CallLog.Calls.INCOMING_TYPE}"
-            CallDirection.OUTGOING -> "${CallLog.Calls.TYPE} = ${CallLog.Calls.OUTGOING_TYPE}"
-            else -> null
-        }
-        // Try multiples times with a delay in case the OS didn't write the call log entry yet (only written after the call ended).
-        for (i in 1..4) {
-            try {
-                val cursor = context.contentResolver.query(
-                    CallLog.Calls.CONTENT_URI,
-                    arrayOf(CallLog.Calls.NUMBER),
-                    typeSelection, null,
-                    "${CallLog.Calls.DATE} DESC"
-                )
-                cursor?.use {
-                    if (it.moveToFirst()) {
-                        return it.getString(0)
-                    }
-                }
-            } catch (e: Exception) {
-                AppLogger.w(TAG, "Failed to query call log for fallback number", e)
-            }
-            if (i < 4) delay(400)
-        }
-        return null
-    }
-
-    /**
      * Updates the foreground service notification based on the current state (Recording or Standby).
      */
     private fun updateNotification() {
-        val notification = notificationHelper.getNotification(currentState)
+        val notification = notificationHelper.getServiceNotification(currentState)
         startForegroundWithType(notification)
     }
 

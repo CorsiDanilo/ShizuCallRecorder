@@ -76,6 +76,7 @@ interface SettingsActions {
     fun setFileNameTemplate(template: String)
     fun setCallDetectionMode(mode: CallDetectionMode)
     fun setRecordThirdPartyCalls(enabled: Boolean)
+    fun setPostRecordingFileNotification(enabled: Boolean)
 }
 
 /**
@@ -412,6 +413,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      */
     override fun setRecordThirdPartyCalls(enabled: Boolean) {
         preferences.setRecordThirdPartyCallsEnabled(enabled)
+        refresh()
+    }
+
+    /**
+     * Enables or disables the post-recording file management notification, which shows actions like share, delete, etc.
+     */
+    override fun setPostRecordingFileNotification(enabled: Boolean) {
+        preferences.setPostRecordingFileActionsNotificationEnabled(enabled)
         refresh()
     }
 }

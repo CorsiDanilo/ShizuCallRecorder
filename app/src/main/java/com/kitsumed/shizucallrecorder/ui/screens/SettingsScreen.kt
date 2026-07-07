@@ -324,7 +324,6 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
     val currentThemeMode = remember(updateTrigger) { preferences.getThemeMode() }
     val isDynamicColorEnabled = remember(updateTrigger) { preferences.isDynamicColorEnabled() }
     val isShowToastsEnabled = remember(updateTrigger) { preferences.isShowToastsEnabled() }
-    val isVibrationEnabled = remember(updateTrigger) { preferences.isVibrationEnabled() }
     val context = LocalContext.current
     val resources = LocalResources.current
 
@@ -396,11 +395,6 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
             label           = stringResource(R.string.settings_show_toasts),
             checked         = isShowToastsEnabled,
             onCheckedChange = { actions.setShowToastsEnabled(it) }
-        )
-        ToggleListItem(
-            label           = stringResource(R.string.settings_vibration_enabled),
-            checked         = isVibrationEnabled,
-            onCheckedChange = { actions.setVibrationEnabled(it) }
         )
     }
 }
@@ -527,6 +521,8 @@ private fun RecordingSection(
     val callDetectionMode = remember(updateTrigger) { preferences.getCallDetectionMode() }
     val recordThirdPartyCalls = remember(updateTrigger) { preferences.isRecordThirdPartyCallsEnabled() }
     val fileNameFormat = remember(updateTrigger) { preferences.getFileNameTemplate() }
+    val postRecordingFileNotifications = remember(updateTrigger) { preferences.isPostRecordingFileActionsNotificationEnabled() }
+    val isVibrationEnabled = remember(updateTrigger) { preferences.isVibrationEnabled() }
     val autoRecordIncoming = remember(updateTrigger) { preferences.isAutoRecordIncomingEnabled() }
     val autoRecordOutgoing = remember(updateTrigger) { preferences.isAutoRecordOutgoingEnabled() }
     val ignoreAnonymousIncoming = remember(updateTrigger) { preferences.isIgnoreAnonymousIncomingEnabled() }
@@ -626,6 +622,21 @@ private fun RecordingSection(
                 )
             },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+
+        ToggleListItem(
+            label = stringResource(R.string.settings_post_recording_notification),
+            description = stringResource(R.string.settings_post_recording_notification_description),
+            checked = postRecordingFileNotifications,
+            onCheckedChange = { actions.setPostRecordingFileNotification(it) }
+        )
+
+        ToggleListItem(
+            label           = stringResource(R.string.settings_vibration_enabled),
+            checked         = isVibrationEnabled,
+            onCheckedChange = { actions.setVibrationEnabled(it) }
         )
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
@@ -1189,6 +1200,7 @@ private fun SettingsScreenPreview() {
             override fun setFileNameTemplate(template: String) {}
             override fun setCallDetectionMode(mode: CallDetectionMode) {}
             override fun setRecordThirdPartyCalls(enabled: Boolean) {}
+            override fun setPostRecordingFileNotification(enabled: Boolean) {}
         }
 
         // File name template selection dialog
