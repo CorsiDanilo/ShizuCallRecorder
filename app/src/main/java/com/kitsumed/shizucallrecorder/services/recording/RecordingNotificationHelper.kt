@@ -85,10 +85,13 @@ class RecordingNotificationHelper(private val context: Context) {
 
         // Post Recording File Actions Channel
         val postCallChannel = NotificationChannel(CHANNEL_ID_POST_RECORDING_FILE_ACTIONS,
-            "Post-Call Managements Actions",
-            NotificationManager.IMPORTANCE_DEFAULT
+            "Post-Call Quick Actions",
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             this.group = groupId
+            setSound(null, null)
+            enableLights(false)
+            enableVibration(false)
             setShowBadge(true)
             lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
         }
@@ -259,6 +262,7 @@ class RecordingNotificationHelper(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID_POST_RECORDING_FILE_ACTIONS)
             .setSmallIcon(R.drawable.ic_audio_file)
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             .setContentTitle(context.getString(R.string.post_recording_notification_title))
             .setContentText(callMetadata.getBestNumber().takeIf { it.isNotEmpty() } ?: context.getString(R.string.post_recording_notification_unknown_caller))
             .setAutoCancel(true)
