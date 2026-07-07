@@ -293,7 +293,7 @@ class RecordingNotificationHelper(private val context: Context) {
      */
     fun showErrorNotification(message: String) {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID_ERROR)
-            .setSmallIcon(R.drawable.ic_mic)
+            .setSmallIcon(R.drawable.ic_outline_error)
             .setContentTitle(context.getString(R.string.recording_error_title))
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
