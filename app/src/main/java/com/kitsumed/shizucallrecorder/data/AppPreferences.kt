@@ -27,8 +27,6 @@ class AppPreferences(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "shizucallrecorder_prefs"
-
-        private const val TAG = "SCR:AppPreferences"
     }
 
     /**
@@ -252,7 +250,7 @@ class AppPreferences(context: Context) {
         val savedMode = try {
             CallDetectionMode.fromKey(savedKey)
         } catch (e: IllegalArgumentException) {
-            AppLogger.e(TAG, "Invalid saved CallDetectionMode key: $savedKey, falling back to default. Error: ${e.message}")
+            AppLogger.e( "Invalid saved CallDetectionMode key: $savedKey, falling back to default. Error: ${e.message}")
             CallDetectionMode.getDefaultModeForDevice()
         }
 
@@ -260,7 +258,7 @@ class AppPreferences(context: Context) {
         return if (savedMode.isSupportedOnCurrentApi()) {
             savedMode
         } else {
-            AppLogger.w(TAG, "Saved CallDetectionMode ${savedMode.key} is not supported on current API level, falling back to default.")
+            AppLogger.w( "Saved CallDetectionMode ${savedMode.key} is not supported on current API level, falling back to default.")
             CallDetectionMode.getDefaultModeForDevice()
         }
     }

@@ -23,9 +23,6 @@ import com.kitsumed.shizucallrecorder.utils.AppLogger
  * This is a simple activity that shows a confirmation dialog to the user before deleting a recording file.
  */
 class DeleteDialogConfirmationActivity : AppCompatActivity() {
-    companion object {
-        const val TAG = "SCR:DeleteDialogConfirmationActivity"
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +47,7 @@ class DeleteDialogConfirmationActivity : AppCompatActivity() {
                         manager.cancel(RecordingNotificationHelper.POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ID)
                     }
                 } catch (e: Exception) {
-                    AppLogger.e(TAG, "Failed to delete file: $fileUri", e)
+                    AppLogger.e( "Failed to delete file: $fileUri", e)
                     Toast.makeText(this, getString(R.string.delete_recording_confirmation_failed), Toast.LENGTH_LONG).show()
                 }
                 finish()

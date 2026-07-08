@@ -36,7 +36,6 @@ import com.kitsumed.shizucallrecorder.utils.SponsorNotificationHelper
 class RecordingDecisionEngine private constructor(context: Context) {
 
     companion object {
-        private const val TAG = "SCR:RecordingDecisionEngine"
 
         // Singleton instance management
         @Volatile
@@ -60,7 +59,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
     private val appPreferences = AppPreferences(appContext)
 
     init {
-        AppLogger.d(TAG, "RecordingDecisionEngine initialised")
+        AppLogger.d( "RecordingDecisionEngine initialised")
     }
 
     /**
@@ -77,15 +76,15 @@ class RecordingDecisionEngine private constructor(context: Context) {
      * @return true is an Intent to start/standby the [com.kitsumed.shizucallrecorder.services.recording.RecordingForegroundService] was fired successfully, false if there was an error
      */
     suspend fun executeDecisionPipeline(rawData: RawCallData): Boolean {
-        AppLogger.i(TAG, "Starting recording decision pipeline for ${rawData.direction} call")
+        AppLogger.i( "Starting recording decision pipeline for ${rawData.direction} call")
 
         // Step 1: Transform to EnrichedCallData
         val enrichedData = EnrichedCallData.enrichMetadata(appContext, rawData)
-        AppLogger.d(TAG, "Enriched call data: BestNumber=${enrichedData.getBestNumber()}, crossCountry=${enrichedData.isCrossCountry}")
+        AppLogger.d( "Enriched call data: BestNumber=${enrichedData.getBestNumber()}, crossCountry=${enrichedData.isCrossCountry}")
 
         // Step 2: Evaluate recording decision
         val shouldAutoRecord = shouldAutoRecord(enrichedData)
-        AppLogger.i(TAG, "Recording decision for ${enrichedData.direction} call is: shouldAutoRecord=$shouldAutoRecord")
+        AppLogger.i( "Recording decision for ${enrichedData.direction} call is: shouldAutoRecord=$shouldAutoRecord")
 
         // Step 3: Fire appropriate Intent
         return fireRecordingServiceIntent(enrichedData, shouldAutoRecord)
@@ -95,7 +94,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
      * Ends the current recording session, firing the STOP intent to [com.kitsumed.shizucallrecorder.services.recording.RecordingForegroundService].
      */
     fun endRecordingSession() {
-        AppLogger.d(TAG, "Ending recording session. Sending STOP INTENT to RecordingForegroundService.")
+        AppLogger.d( "Ending recording session. Sending STOP INTENT to RecordingForegroundService.")
 
         val intent = Intent(appContext, RecordingForegroundService::class.java).apply {
             action = RecordingForegroundService.ACTION_STOP_RECORDING
@@ -140,17 +139,17 @@ class RecordingDecisionEngine private constructor(context: Context) {
         isAnonymous: Boolean
     ): Boolean {
         if (!appPreferences.isAutoRecordIncomingEnabled()) {
-            AppLogger.i(TAG, "Auto-record for incoming call is disabled")
+            AppLogger.i( "Auto-record for incoming call is disabled")
             return false
         }
 
         if (isAnonymous && appPreferences.isIgnoreAnonymousIncomingEnabled()) {
-            AppLogger.i(TAG, "Ignoring incoming call: call is anonymous")
+            AppLogger.i( "Ignoring incoming call: call is anonymous")
             return false
         }
 
         if (metadata.isCrossCountry && appPreferences.isIgnoreCrossCountryIncomingEnabled()) {
-            AppLogger.i(TAG, "Ignoring incoming call: call was detected as cross-country")
+            AppLogger.i( "Ignoring incoming call: call was detected as cross-country")
             return false
         }
 
@@ -160,7 +159,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
             appPreferences.getIgnoredContactsIncoming()
         )
         ) {
-            AppLogger.i(TAG, "Ignoring incoming call: contact filter matched")
+            AppLogger.i( "Ignoring incoming call: contact filter matched")
             return false
         }
 
@@ -180,12 +179,12 @@ class RecordingDecisionEngine private constructor(context: Context) {
         normalisedNumber: String
     ): Boolean {
         if (!appPreferences.isAutoRecordOutgoingEnabled()) {
-            AppLogger.i(TAG, "Auto-record for outgoing call is disabled")
+            AppLogger.i( "Auto-record for outgoing call is disabled")
             return false
         }
 
         if (metadata.isCrossCountry && appPreferences.isIgnoreCrossCountryOutgoingEnabled()) {
-            AppLogger.i(TAG, "Ignoring outgoing call: call was detected as cross-country")
+            AppLogger.i( "Ignoring outgoing call: call was detected as cross-country")
             return false
         }
 
@@ -195,7 +194,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
             appPreferences.getIgnoredContactsOutgoing()
         )
         ) {
-            AppLogger.i(TAG, "Ignoring outgoing call: contact filter matched")
+            AppLogger.i( "Ignoring outgoing call: contact filter matched")
             return false
         }
 
@@ -276,10 +275,10 @@ class RecordingDecisionEngine private constructor(context: Context) {
      */
     private fun fireRecordingServiceIntent(enrichedData: EnrichedCallData, shouldAutoRecord: Boolean): Boolean {
         val action = if (shouldAutoRecord) {
-            AppLogger.i(TAG, "Firing Intent: ACTION_START_RECORDING for ${enrichedData.direction} call")
+            AppLogger.i( "Firing Intent: ACTION_START_RECORDING for ${enrichedData.direction} call")
             RecordingForegroundService.ACTION_START_RECORDING
         } else {
-            AppLogger.i(TAG, "Firing Intent: ACTION_STANDBY for ${enrichedData.direction} call")
+            AppLogger.i( "Firing Intent: ACTION_STANDBY for ${enrichedData.direction} call")
             RecordingForegroundService.ACTION_STANDBY
         }
 
@@ -290,10 +289,10 @@ class RecordingDecisionEngine private constructor(context: Context) {
 
         try {
             appContext.startForegroundService(intent)
-            AppLogger.d(TAG, "Intent fired successfully")
+            AppLogger.d( "Intent fired successfully")
             return true
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Failed to fire intent to RecordingForegroundService", e)
+            AppLogger.e( "Failed to fire intent to RecordingForegroundService", e)
         }
         return false
     }
@@ -306,7 +305,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
         val currentTime = System.currentTimeMillis()
         // 31536000000 milliseconds = 1 year
         if (currentTime - lastNotificationTime > 31536000000L) {
-            AppLogger.i(TAG, "Time threshold exceeded. Displaying project support notification.")
+            AppLogger.i( "Time threshold exceeded. Displaying project support notification.")
             // Invoke your notification helper to push a standard background alert
             SponsorNotificationHelper.showSupportReminderNotification(appContext)
             // Set the preference to the current timestamp to restart the countdown timer

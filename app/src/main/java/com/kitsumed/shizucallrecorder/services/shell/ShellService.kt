@@ -27,9 +27,6 @@ import kotlin.system.exitProcess
  */
 @Keep
 class ShellService : IShellService.Stub {
-    private companion object {
-        const val TAG = "SCR:ShellService"
-    }
 
     private val audioPipeline by lazy { ShellAudioPipeline() }
     private val commandExecutor by lazy { ShellCommandExecutor() }
@@ -49,7 +46,7 @@ class ShellService : IShellService.Stub {
      */
     @Keep
     constructor(context: Context?) {
-        Log.i(TAG,"===============================\n" +
+        AppLogger.i("===============================\n" +
              "ShellService process started!\n" +
              "Running as UID=(${android.os.Process.myUid()})\n" +
              "===============================")
@@ -93,7 +90,7 @@ class ShellService : IShellService.Stub {
      * @see IShellService.destroy
      */
     override fun destroy() {
-        AppLogger.i(TAG,"ShellService.destroy() – terminating shell process")
+        AppLogger.i("ShellService.destroy() – terminating shell process")
         stopRecording()
         exitProcess(0)
     }

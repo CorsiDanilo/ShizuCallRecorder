@@ -25,7 +25,6 @@ import com.kitsumed.shizucallrecorder.utils.AppLogger
 class PhoneStateTemporaryCache(private val context: Context) {
 
     companion object {
-        private const val TAG = "SCR:CallSessionTemporaryCache"
         private const val PREFS_CACHE = "CallSessionManagerTemporaryCache"
         private const val KEY_CACHE_DIRECTION = "cache_direction"
         private const val KEY_CACHE_TIMESTAMP = "cache_timestamp"
@@ -62,7 +61,7 @@ class PhoneStateTemporaryCache(private val context: Context) {
         if (System.currentTimeMillis() - timestamp <= MAX_AGE_MS) {
             val restoredDir = savedDirToken?.let { CallDirection.fromToken(it) }
             if (restoredDir != null) {
-                AppLogger.d(TAG, "Restored direction (${restoredDir.token}) from TemporaryCache (process was killed during RINGING).")
+                AppLogger.d( "Restored direction (${restoredDir.token}) from TemporaryCache (process was killed during RINGING).")
                 return restoredDir
             }
         } else clear() // Clear stale data if it's old

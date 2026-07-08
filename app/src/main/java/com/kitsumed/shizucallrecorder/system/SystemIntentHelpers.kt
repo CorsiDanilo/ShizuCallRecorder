@@ -19,15 +19,6 @@ import com.kitsumed.shizucallrecorder.AppUrls
 import com.kitsumed.shizucallrecorder.BuildConfig
 import com.kitsumed.shizucallrecorder.integrations.shizuku.ShizukuConnectionManager
 import com.kitsumed.shizucallrecorder.utils.AppLogger
-
-/**
- * SystemIntentHelpers.kt contains shortcuts for opening system screens and doing
- * other [Context] related tasks.
- */
-
-/** Package name of the Shizuku app. */
-private const val TAG = "SCR:SystemIntentHelpers"
-
 /**
  * A folder-picker that asks for long-term read and write access to the chosen folder.
  *
@@ -117,7 +108,6 @@ private fun Context.launchSmartIntent(intent: Intent) {
     if (this !is Activity) {
         if (BuildConfig.DEBUG) {
             AppLogger.w(
-                TAG,
                 "launchSmartIntent called from a non-Activity context (${this::class.simpleName}). " +
                 "FLAG_ACTIVITY_NEW_TASK will be added automatically, but the user may not be able " +
                 "to press Back to return to this app from the launched screen."

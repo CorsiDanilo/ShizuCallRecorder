@@ -72,10 +72,6 @@ data class ContactEntry(
  */
 class ContactPickerViewModel(application: Application) : AndroidViewModel(application) {
 
-    companion object {
-        private const val TAG = "SCR:ContactPickerViewModel"
-    }
-
     /**
      * Application context - safe to store in a ViewModel because it lives as long as the
      * app process, unlike an Activity context which is destroyed and recreated on every rotation.
@@ -125,7 +121,7 @@ class ContactPickerViewModel(application: Application) : AndroidViewModel(applic
             val cleanSelectedLookupKeys = rawSelectedKeys.intersect(validContactsLookupKeys)
 
             if (rawSelectedKeys.size != cleanSelectedLookupKeys.size) {
-                AppLogger.d(TAG, "Ignored ${rawSelectedKeys.size - cleanSelectedLookupKeys.size} stale contacts lookup keys.")
+                AppLogger.d( "Ignored ${rawSelectedKeys.size - cleanSelectedLookupKeys.size} stale contacts lookup keys.")
             }
 
             _contactPickerState.value = ContactPickerState(type, contacts, cleanSelectedLookupKeys)

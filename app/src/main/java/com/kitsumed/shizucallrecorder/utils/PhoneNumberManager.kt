@@ -43,8 +43,6 @@ class PhoneNumberManager private constructor(context: Context) {
     }
 
     companion object {
-        private const val TAG = "SCR:PhoneNumberManager"
-
         // Singleton instance management
         @Volatile
         private var INSTANCE: PhoneNumberManager? = null
@@ -108,7 +106,7 @@ class PhoneNumberManager private constructor(context: Context) {
         return@withContext try {
             phoneUtil.parse(rawNumber, defaultRegion.uppercase())
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Error parsing phone number: ${e.message}", e)
+            AppLogger.e( "Error parsing phone number: ${e.message}", e)
             null
         }
     }

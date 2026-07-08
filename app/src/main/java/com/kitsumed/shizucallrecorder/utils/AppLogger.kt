@@ -17,6 +17,7 @@ import com.kitsumed.shizucallrecorder.BuildConfig
 import com.kitsumed.shizucallrecorder.ILogCallback
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyConfig
+import com.kitsumed.shizucallrecorder.system.permissions.AppPermission
 import com.kitsumed.shizucallrecorder.utils.AppLogger.init
 import com.kitsumed.shizucallrecorder.utils.AppLogger.initAsRemote
 import com.kitsumed.shizucallrecorder.utils.AppLogger.redact
@@ -43,7 +44,13 @@ import java.util.Locale
  */
 object AppLogger {
 
-    private const val TAG = "AppLogger"
+
+
+    /**
+     * Prefix used for all log tags to clearly identify logs originating from this application.
+     */
+    private const val TAG_PREFIX = "SCR:"
+    private const val TAG = "${TAG_PREFIX}AppLogger"
 
     /**
      * Reference to a remote callback. When set, this process acts as a producer
@@ -52,10 +59,10 @@ object AppLogger {
     private var remoteCallback: ILogCallback? = null
 
     /** Maximum number of lines the log file can hold before being trimmed. */
-    private const val MAX_LOG_LINES = 1000
+    private const val MAX_LOG_LINES = 1500
 
     /** Number of lines to retain when the log file is trimmed. */
-    private const val LINES_TO_KEEP = 500
+    private const val LINES_TO_KEEP = 1000
 
     /** Coroutine scope dedicated to background log persistence. */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -113,9 +120,42 @@ object AppLogger {
                 val redacted = if (isRedactionEnabled) redact(fullMessage) else fullMessage
 
                 // Pipe IPC logs using the level provided by the remote process
-                logInternal(level, tag, redacted, null)
+                val finalTag = formatTag(tag)
+                logInternal(level, finalTag, redacted, null)
             }
         }
+    }
+
+    /**
+     * Extracts the calling class name from the current thread stack trace.
+     */
+    private fun getCallerTag(): String {
+        val stackTrace = Throwable().stackTrace
+        val loggerClassName = AppLogger::class.java.name
+
+        for (element in stackTrace) {
+            val className = element.className
+            // Skip AppLogger itself and anything outside the app's package (e.g., system or library classes)
+            if (className.startsWith(BuildConfig.APPLICATION_ID) && className != loggerClassName) {
+                var simpleName = className.substringAfterLast('.')
+
+                // Strip anonymous class suffixes (e.g., MyClass$1)
+                val dollarIndex = simpleName.indexOf('$')
+                if (dollarIndex > 0) {
+                    simpleName = simpleName.substring(0, dollarIndex)
+                }
+
+                return formatTag(simpleName)
+            }
+        }
+        throw IllegalStateException("Unable to determine caller class name from stack trace.")
+    }
+
+    /**
+     * Ensures the provided tag is prefixed with [TAG_PREFIX]
+     */
+    private fun formatTag(tag: String): String {
+        return if (tag.startsWith(TAG_PREFIX)) tag else "$TAG_PREFIX$tag"
     }
 
     /**
@@ -238,7 +278,20 @@ object AppLogger {
                 writer.println("Device Country Iso Estimation: ${PhoneNumberManager.getInstance(context).getDeviceCountryIso()}")
                 writer.println("Log Redaction Disabled / Debug Mode : ${prefs.isDebugEnabled()}")
                 writer.println("Call Detection Method: ${prefs.getCallDetectionMode().key}")
-                writer.println("===========================================")
+                writer.println()
+                writer.println("=== Call Detection Method Permissions List ===")
+                prefs.getCallDetectionMode().requiredPermissions.forEach { permission ->
+                    val grantedState = if (permission.isGranted(context)) "Granted" else "MISSING"
+
+                    // Determine the type of permission and specific name based on the sealed class subclass
+                    val (type, name) = when (permission) {
+                        is AppPermission.Runtime -> "Runtime" to permission.manifestString
+                        is AppPermission.Elevated.AppOp -> "AppOp" to permission.permissionIdentifier
+                    }
+
+                    writer.println("[$type] $name: $grantedState")
+                }
+                writer.println("==============================================")
                 writer.println()
                 writer.flush()
 
@@ -247,7 +300,7 @@ object AppLogger {
                         inputStream.copyTo(outputStream)
                     }
                 } else {
-                    writer.println("[No logs found in internal storage]")
+                    w(TAG, "No logs found in internal storage to export.")
                 }
             }
         }
@@ -260,12 +313,16 @@ object AppLogger {
         logInternal("V", tag, finalMessage, t)
     }
 
+    fun v(message: String, t: Throwable? = null) { v(getCallerTag(), message, t) }
+
     /** Logs a Debug level message and optionally its throwable trace. */
     fun d(tag: String, message: String, t: Throwable? = null) {
         val finalMessage = if (isRedactionEnabled) redact(message) else message
         if (t != null) Log.d(tag, finalMessage, t) else Log.d(tag, finalMessage)
         logInternal("D", tag, finalMessage, t)
     }
+
+    fun d(message: String, t: Throwable? = null) { d(getCallerTag(), message, t) }
 
     /** Logs an Info level message and optionally its throwable trace. */
     fun i(tag: String, message: String, t: Throwable? = null) {
@@ -274,12 +331,16 @@ object AppLogger {
         logInternal("I", tag, finalMessage, t)
     }
 
+    fun i(message: String, t: Throwable? = null) { i(getCallerTag(), message, t) }
+
     /** Logs a Warning level message and optionally its throwable trace. */
     fun w(tag: String, message: String, t: Throwable? = null) {
         val finalMessage = if (isRedactionEnabled) redact(message) else message
         if (t != null) Log.w(tag, finalMessage, t) else Log.w(tag, finalMessage)
         logInternal("W", tag, finalMessage, t)
     }
+
+    fun w(message: String, t: Throwable? = null) { w(getCallerTag(), message, t) }
 
     /** Logs an Error level message and optionally its throwable trace. */
     fun e(tag: String, message: String, t: Throwable? = null) {
@@ -288,12 +349,7 @@ object AppLogger {
         logInternal("E", tag, finalMessage, t)
     }
 
-    /** Logs a "What a Terrible Failure" (assert) message and optionally its throwable trace. */
-    fun wtf(tag: String, message: String, t: Throwable? = null) {
-        val finalMessage = if (isRedactionEnabled) redact(message) else message
-        if (t != null) Log.wtf(tag, finalMessage, t) else Log.wtf(tag, finalMessage)
-        logInternal("WTF", tag, finalMessage, t)
-    }
+    fun e(message: String, t: Throwable? = null) { e(getCallerTag(), message, t) }
 
     /**
      * Prepares a log message by enriching it with more detailed metadata (timestamp, log level, tag) and then

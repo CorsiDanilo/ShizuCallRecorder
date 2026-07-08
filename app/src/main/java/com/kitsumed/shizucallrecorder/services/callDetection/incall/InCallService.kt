@@ -46,9 +46,6 @@ import kotlinx.coroutines.launch
  */
 @RequiresApi(Build.VERSION_CODES.S) // Call detection method only available on Android 12+ for us. This hide warnings of previous API deprecations.
 class InCallService : InCallService() {
-    companion object {
-        private const val TAG = "SCR:InCallService"
-    }
 
     private lateinit var appPreferences: AppPreferences
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -77,11 +74,11 @@ class InCallService : InCallService() {
 
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
-        AppLogger.v(TAG, "Received onCallAdded callback for call: ${call.details}")
+        AppLogger.v( "Received onCallAdded callback for call: ${call.details}")
 
         // Prevent dual-call scenario. Could be supported with InCallService, but would require a rework of how the recording logic works.
         if (activeTrackedCall != null) {
-            AppLogger.d(TAG, "Parallel call detected. Discarding new call, dual-call scenario is not currently supported with InCallService implementation.")
+            AppLogger.d( "Parallel call detected. Discarding new call, dual-call scenario is not currently supported with InCallService implementation.")
             return
         }
 
@@ -95,18 +92,18 @@ class InCallService : InCallService() {
 
         // If the call is from a third-party app, only proceed if the user has explicitly enabled third-party app recording.
         if (!isCallFromSystemDialer && !appPreferences.isRecordThirdPartyCallsEnabled()) {
-            AppLogger.i(TAG, "Received call from package ${packageName}, which is not the system or default dialer. Discarding call, user has not enabled third-party call recording.")
+            AppLogger.i( "Received call from package ${packageName}, which is not the system or default dialer. Discarding call, user has not enabled third-party call recording.")
             return
         }
 
         // Assign and register tracking handles
         activeTrackedCall = call
         call.registerCallback(callCallback)
-        AppLogger.i(TAG, "Primary call session detected and tracking initialized. Current state is: ${Connection.stateToString(call.details.state)} (${call.details.state})")
+        AppLogger.i( "Primary call session detected and tracking initialized. Current state is: ${Connection.stateToString(call.details.state)} (${call.details.state})")
 
         // Edge Case: If the call is already active when we receive it
         if (call.details.state == Call.STATE_ACTIVE) {
-            AppLogger.d(TAG, "Received call in already ACTIVE state. Triggering handleCallStateChanged directly.")
+            AppLogger.d( "Received call in already ACTIVE state. Triggering handleCallStateChanged directly.")
             handleCallStateChanged(call, Call.STATE_ACTIVE)
         }
     }
@@ -116,11 +113,11 @@ class InCallService : InCallService() {
     // This BCR issue is regarding an Android version we do not support (9-10), but it's worth keeping in mind for future debugging.
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
-        AppLogger.v(TAG, "Received onCallRemoved callback for call: ${call.details}")
+        AppLogger.v( "Received onCallRemoved callback for call: ${call.details}")
 
         // Ensure we are tearing down the precise call that we were tracking
         if (call == activeTrackedCall) {
-            AppLogger.i(TAG, "Primary call session disconnected. Releasing callbacks. Ending recording.")
+            AppLogger.i( "Primary call session disconnected. Releasing callbacks. Ending recording.")
 
             // Sever the listener relation to prevent framework memory leaks
             call.unregisterCallback(callCallback)
@@ -134,7 +131,7 @@ class InCallService : InCallService() {
             // Flush the object reference to fully accept new calls down the road
             activeTrackedCall = null
         } else {
-            AppLogger.d(TAG, "Received onCallRemoved for non-primary call. Ignoring.")
+            AppLogger.d( "Received onCallRemoved for non-primary call. Ignoring.")
         }
     }
 
@@ -144,10 +141,10 @@ class InCallService : InCallService() {
      * @param state A duplicate of `call.details.state`, provided for convenience. This is here to match the signature of the [Call.Callback.onStateChanged] method.
      */
     private fun handleCallStateChanged(call: Call, state: Int) {
-        AppLogger.v(TAG, "Received onStateChanged callback for call: ${call.details}, current state: $state")
+        AppLogger.v( "Received onStateChanged callback for call: ${call.details}, current state: $state")
         // Restrict state change handling to the primary tracked call. This prevents issues with parallel calls (not supported in this implementation).
         if (call != activeTrackedCall) return
-        AppLogger.d(TAG, "Primary call state changed to ${Connection.stateToString(call.details.state)} (${call.details.state})")
+        AppLogger.d( "Primary call state changed to ${Connection.stateToString(call.details.state)} (${call.details.state})")
 
 
 
@@ -179,18 +176,18 @@ class InCallService : InCallService() {
                 packageName = packageName
             )
 
-            AppLogger.i(TAG, "Primary call became ACTIVE. Triggering Decision Engine Pipeline.")
+            AppLogger.i( "Primary call became ACTIVE. Triggering Decision Engine Pipeline.")
             val isSelfManaged = details.hasProperty(Call.Details.PROPERTY_SELF_MANAGED)
             val isVoip = details.hasProperty(Call.Details.PROPERTY_VOIP_AUDIO_MODE)
             val isWifiCall = details.hasProperty(Call.Details.PROPERTY_WIFI)
-            AppLogger.d(TAG, "Primary call details - isSelfManaged: $isSelfManaged, isVoip: $isVoip, isWifiCall: $isWifiCall")
+            AppLogger.d( "Primary call details - isSelfManaged: $isSelfManaged, isVoip: $isVoip, isWifiCall: $isWifiCall")
 
             serviceScope.launch {
                 val intentSentSuccessfully = RecordingDecisionEngine.getInstance(this@InCallService).executeDecisionPipeline(rawCallData)
 
                 // If the Intent IPC pipeline fails structurally (e.g. FGS launching exception), reset flag to allow retries
                 if (!intentSentSuccessfully) {
-                    AppLogger.e(TAG, "Failed to start recording foreground service, intent dispatch failed. Resetting execution flag.")
+                    AppLogger.e( "Failed to start recording foreground service, intent dispatch failed. Resetting execution flag.")
                     isPipelineExecuted = false
                 }
             }

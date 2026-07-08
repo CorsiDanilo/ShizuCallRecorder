@@ -6,7 +6,7 @@
   ~  This software is distributed WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   -->
 
-<resources>
+<resources tools:ignore="MissingTranslation" xmlns:tools="http://schemas.android.com/tools">
     <!-- ========================================== -->
     <!-- GENERAL MESSAGES & APP LEVEL               -->
     <!-- ========================================== -->

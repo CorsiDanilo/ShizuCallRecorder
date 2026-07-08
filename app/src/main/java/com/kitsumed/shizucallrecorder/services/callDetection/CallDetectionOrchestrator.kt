@@ -24,16 +24,12 @@ class CallDetectionOrchestrator(private val context: Context) {
     private val packageManager = appContext.packageManager
     private val prefs = AppPreferences(appContext)
 
-    companion object {
-        private const val TAG = "SCR:DetectionOrchestrator"
-    }
-
     /**
      * Synchronizes manifest components with the preferred user settings and hardware API restrictions.
      */
     fun syncComponents() {
         val activeMode = prefs.getCallDetectionMode()
-        AppLogger.i(TAG, "Synchronizing components. Active mode chosen: ${activeMode.name}")
+        AppLogger.i( "Synchronizing components. Active mode chosen: ${activeMode.name}")
 
         CallDetectionMode.entries.forEach { mode ->
             val shouldEnable = (mode == activeMode)
@@ -61,9 +57,9 @@ class CallDetectionOrchestrator(private val context: Context) {
                 targetState,
                 PackageManager.DONT_KILL_APP
             )
-            AppLogger.d(TAG, "Component state updated: ${className.substringAfterLast('.')} -> Enabled=$enable")
+            AppLogger.d( "Component state updated: ${className.substringAfterLast('.')} -> Enabled=$enable")
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Failed to toggle component setting for $className", e)
+            AppLogger.e( "Failed to toggle component setting for $className", e)
         }
     }
 }
