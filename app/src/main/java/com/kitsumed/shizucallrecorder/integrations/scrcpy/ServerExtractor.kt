@@ -55,7 +55,7 @@ object ServerExtractor {
     fun installFromPipe(serverData: ParcelFileDescriptor, serverPath: String): Boolean {
         val destFile = File(serverPath)
         if (destFile.exists() && verifyServerHash(destFile)) {
-            AppLogger.d(TAG, "Shell server file already present and verified at $serverPath")
+            AppLogger.d("Shell server file already present and verified at $serverPath")
             runCatching { serverData.close() }
             return true
         }
@@ -68,28 +68,28 @@ object ServerExtractor {
             }
 
             if (!verifyServerHash(tempFile)) {
-                AppLogger.w(TAG, "Shell server pipe copy completed but hash verification FAILED")
+                AppLogger.w("Shell server pipe copy completed but hash verification FAILED")
                 tempFile.delete()
                 return false
             }
 
             if (destFile.exists() && !destFile.delete()) {
-                AppLogger.w(TAG, "Unable to replace existing shell server file at $serverPath")
+                AppLogger.w("Unable to replace existing shell server file at $serverPath")
                 tempFile.delete()
                 return false
             }
 
             if (!tempFile.renameTo(destFile)) {
-                AppLogger.w(TAG, "Unable to move shell server file into place at $serverPath")
+                AppLogger.w("Unable to move shell server file into place at $serverPath")
                 tempFile.delete()
                 return false
             }
 
             destFile.setReadable(true, false)
-            AppLogger.d(TAG, "Shell server installed and verified at $serverPath")
+            AppLogger.d("Shell server installed and verified at $serverPath")
             true
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Shell server install failed: ${e.message}", e)
+            AppLogger.e("Shell server install failed: ${e.message}", e)
             tempFile.delete()
             false
         }

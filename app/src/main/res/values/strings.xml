@@ -27,7 +27,6 @@
     <string name="general_reset">Reset</string>
     <string name="general_play">Play</string>
     <string name="general_share">Share</string>
-    <string name="general_delete">Delete</string>
     <string name="general_deleted">Deleted</string>
     <string name="general_system_limitation">System Limitation</string>
     <string name="general_system_limitation_message">ShizuCallRecorder will not work on this device as your shell application does not have the required permissions:\n\n%1$s\n\nThere is nothing you can do about this, the app cannot function and will now close.</string>
@@ -308,6 +307,10 @@
     <string name="recording_toast_paused">Recording paused.</string>
     <string name="recording_toast_resumed">Recording resumed.</string>
     <string name="recording_started">Recording started.</string>
+    <string name="recording_toast_discarded">Recording discarded.</string>
+    <string name="recording_toast_deleted">Recording deleted.</string>
+    <string name="recording_saved_title">Recording Saved</string>
+    <string name="recording_saved_message">Your recording has been saved.</string>
     <string name="post_recording_notification_title">Recording Management</string>
     <string name="post_recording_notification_unknown_caller">Anonymous or Unknown caller</string>
     <!-- Recording Service: DeleteDialogConfirmationActivity -->
@@ -326,5 +329,4 @@
     <string name="recording_shizuku_not_started">Shizuku-Server process is stopped. Please start Shizuku and ensure it is always able to run when the app wants to record audio.</string>
     <string name="recording_shizuku_permission_denied">Please allow the application to use Shizuku. Permission was denied.</string>
     <string name="recording_shizuku_auth_key_missing">Shizuku Intents authentication key is missing. Please enter it in the app settings.</string>
-    <string name="general_share">Share</string>
 </resources>

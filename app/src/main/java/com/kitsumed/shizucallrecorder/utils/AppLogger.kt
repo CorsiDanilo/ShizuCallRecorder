@@ -136,7 +136,7 @@ object AppLogger {
         for (element in stackTrace) {
             val className = element.className
             // Skip AppLogger itself and anything outside the app's package (e.g., system or library classes)
-            if (className.startsWith(BuildConfig.APPLICATION_ID) && className != loggerClassName) {
+            if (className.startsWith("com.kitsumed.shizucallrecorder") && className != loggerClassName) {
                 var simpleName = className.substringAfterLast('.')
 
                 // Strip anonymous class suffixes (e.g., MyClass$1)

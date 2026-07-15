@@ -335,7 +335,7 @@ class RecordingForegroundService : Service() {
         }
         
         if (discard) {
-            AppLogger.i(TAG, "Discarding active recording session...")
+            AppLogger.i("Discarding active recording session...")
             activeSession.cancel(this, shellService)
             notificationHelper.showToast(getString(R.string.recording_toast_discarded))
             currentState = RecordingServiceState.Standby(null)
@@ -343,8 +343,6 @@ class RecordingForegroundService : Service() {
             stopSelf()
             return
         }
-
-        AppLogger.i(TAG, "Stopping active recording session, remove foreground notification and stopping service...")
 
         // Capture metadata before releasing resources, in case we need to query call logs for the final file name if phone number is empty.
         val originalMetadata = activeSession.initializationMetadata
@@ -367,7 +365,7 @@ class RecordingForegroundService : Service() {
                 }
                 
                 CoroutineScope(Dispatchers.Main).launch {
-                    notificationHelper.showRecordingSavedNotification(uriToRename)
+                    notificationHelper.showRecordingSavedNotification(filePathUri)
                 }
             }
         } else if (uriToRename != null) {
