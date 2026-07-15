@@ -65,8 +65,6 @@ class ScrcpyClient(
 ) : Closeable {
 
     companion object {
-        private const val TAG = "SCR:ScrcpyClient"
-
         /**
          * Per-packet flag bitmasks — used to extract flags from the 8-byte PTS field.
          *
@@ -184,11 +182,11 @@ class ScrcpyClient(
             // Read the 4-byte FourCC header sent by scrcpy-server (no dummy byte with tunnel_forward=false).
             val receivedFourCC = inputStream.readInt()
             val resolvedCodec = ScrcpyAudioCodec.fromFourCC(receivedFourCC)
-            AppLogger.d(TAG, "Codec FourCC: received=0x${receivedFourCC.toString(16)} resolved=${resolvedCodec.cliKey} expected=${expectedCodec.cliKey}")
+            AppLogger.d( "Codec FourCC: received=0x${receivedFourCC.toString(16)} resolved=${resolvedCodec.cliKey} expected=${expectedCodec.cliKey}")
 
             // Warn if the server is encoding with a different codec than we requested.
             if (resolvedCodec != expectedCodec) {
-                AppLogger.w(TAG, "Codec mismatch: requested ${expectedCodec.cliKey} but server sent ${resolvedCodec.cliKey} (FourCC=0x${receivedFourCC.toString(16)})")
+                AppLogger.w( "Codec mismatch: requested ${expectedCodec.cliKey} but server sent ${resolvedCodec.cliKey} (FourCC=0x${receivedFourCC.toString(16)})")
             }
 
             listener.onMetadataReceived(resolvedCodec)
@@ -211,7 +209,7 @@ class ScrcpyClient(
                 }
 
                 if (!header.isMedia) {
-                    AppLogger.w(TAG, "Unexpected session packet detected on audio stream! flags=0x${header.rawPtsAndFlags.toString(16)}")
+                    AppLogger.w( "Unexpected session packet detected on audio stream! flags=0x${header.rawPtsAndFlags.toString(16)}")
                 }
 
                 // Guard against stream misalignment: sizes this large are never legitimate.
@@ -228,7 +226,7 @@ class ScrcpyClient(
                 val payloadBytes = ByteArray(header.payloadSize)
                 inputStream.readFully(payloadBytes)
 
-                AppLogger.v(TAG, "Packet: pts=${header.pts} config=${header.isConfig} keyFrame=${header.isKeyFrame} media=${header.isMedia} size=${header.payloadSize}")
+                AppLogger.v( "Packet: pts=${header.pts} config=${header.isConfig} keyFrame=${header.isKeyFrame} media=${header.isMedia} size=${header.payloadSize}")
 
                 listener.onAudioPacket(
                     AudioPacket(
@@ -240,11 +238,11 @@ class ScrcpyClient(
             }
         } catch (e: EOFException) {
             // EOF, in almost EVERY case, should be normal, clean end of the stream (pipe closed by shell process, and we have read it all).
-            AppLogger.d(TAG, "Given stream was fully read (EOF), nothing else to parse, ending normally.")
+            AppLogger.d( "Given stream was fully read (EOF), nothing else to parse, ending normally.")
             listener.onStreamEnd(null)
         } catch (e: Exception) {
             // Any other exception indicates an abnormal termination.
-            AppLogger.w(TAG, "Stream ended with error: ${e.message}")
+            AppLogger.w( "Stream ended with error: ${e.message}")
             listener.onStreamEnd(e.message)
         } finally {
             runCatching { inputStream.close() } // do NOT close inputPfd here; that is done in close()

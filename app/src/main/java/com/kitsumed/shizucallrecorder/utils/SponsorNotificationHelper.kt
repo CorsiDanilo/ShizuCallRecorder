@@ -54,7 +54,7 @@ object SponsorNotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID_REMINDER)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_outline_heart_smile)
             .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             .setContentTitle(context.getString(R.string.sponsor_notification_call_to_action_title))
             .setContentText(context.getString(R.string.sponsor_notification_call_to_action))

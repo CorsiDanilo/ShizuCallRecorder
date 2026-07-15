@@ -62,6 +62,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Activity to show the user a confirmation dialog before deleting a recording -->
+        <activity
+            android:name=".services.recording.DeleteDialogConfirmationActivity"
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog.Alert"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:exported="false" />
+
         <!-- The InCallService implementation, will be registered as an IN_CALL_SERVICE_TYPE_NON_UI later on by the OS -->
         <service
             android:name=".services.callDetection.incall.InCallService"

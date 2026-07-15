@@ -24,9 +24,6 @@ import java.security.MessageDigest
  * writes it to shared storage so the privileged shell process can read and execute it.
  */
 object ServerExtractor {
-
-    private const val TAG = "SCR:ServerExtractor"
-
     /**
      * Ensures the scrcpy-server JAR exists at [serverPath] and has the expected SHA-256 hash.
      *
@@ -41,10 +38,10 @@ object ServerExtractor {
     fun ensureServerFile(context: Context, serverPath: String): Boolean {
         val file = File(serverPath)
         if (file.exists() && verifyServerHash(file)) {
-            AppLogger.d(TAG, "Server file already present and verified at $serverPath")
+            AppLogger.d( "Server file already present and verified at $serverPath")
             return true
         }
-        AppLogger.d(TAG, "Server file absent or hash mismatch, extracting from assets...")
+        AppLogger.d( "Server file absent or hash mismatch, extracting from assets...")
         return extractFromAssets(context, file)
     }
 
@@ -115,13 +112,13 @@ object ServerExtractor {
             }
             val verified = verifyServerHash(destFile)
             if (verified) {
-                AppLogger.d(TAG, "Server extracted and verified: ${destFile.path}")
+                AppLogger.d( "Server extracted and verified: ${destFile.path}")
             } else {
-                AppLogger.w(TAG, "Server extraction succeeded but hash verification FAILED")
+                AppLogger.w( "Server extraction succeeded but hash verification FAILED")
             }
             verified
         } catch (e: Exception) {
-            AppLogger.w(TAG, "Asset extraction failed: ${e.message}")
+            AppLogger.w( "Asset extraction failed: ${e.message}")
             false
         }
     }
@@ -157,7 +154,7 @@ object ServerExtractor {
      */
     fun verifyServerHash(file: File): Boolean {
         if (!file.exists()) {
-            AppLogger.e(TAG, "Cannot verify: file not found at ${file.path}")
+            AppLogger.e( "Cannot verify: file not found at ${file.path}")
             return false
         }
 
@@ -178,11 +175,11 @@ object ServerExtractor {
             val actualHash = digest.digest().joinToString("") { byte -> "%02x".format(byte) }
             val matches = actualHash.equals(ScrcpyConfig.EXPECTED_SERVER_SHA256, ignoreCase = true)
             if (!matches) {
-                AppLogger.w(TAG, "SHA-256 mismatch: expected=${ScrcpyConfig.EXPECTED_SERVER_SHA256} actual=$actualHash")
+                AppLogger.w( "SHA-256 mismatch: expected=${ScrcpyConfig.EXPECTED_SERVER_SHA256} actual=$actualHash")
             }
             matches
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Hash verification error: ${e.message}", e)
+            AppLogger.e( "Hash verification error: ${e.message}", e)
             false
         }
     }

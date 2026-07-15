@@ -39,10 +39,6 @@ import kotlinx.coroutines.withContext
  */
 class PermissionsViewModel(application: Application) : AndroidViewModel(application) {
 
-    companion object {
-        private const val TAG = "SCR:PermissionsViewModel"
-    }
-
     /**
      * Application context — safe to store in a ViewModel because it lives as long as the
      * app process, unlike an Activity context which is destroyed and recreated on every rotation.
@@ -121,7 +117,7 @@ class PermissionsViewModel(application: Application) : AndroidViewModel(applicat
                     withContext(Dispatchers.Main) {
                         _isProcessingGrantingRequest.value = false
                         if (!success) {
-                            AppLogger.w(TAG, "Failed to grant elevated permission with Shizuku.")
+                            AppLogger.w( "Failed to grant elevated permission with Shizuku.")
                             _errorMessage.value = appContext.getString(R.string.general_permission_escalation_exhausted, nextToRequest::class.simpleName, nextToRequest.permissionIdentifier, nextToRequest.escalationAttemptsChain.count())
                         }
                         // Refresh the UI to show potential changes

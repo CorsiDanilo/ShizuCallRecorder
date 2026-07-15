@@ -36,10 +36,6 @@ import com.kitsumed.shizucallrecorder.utils.AppLogger
  */
 class PhoneStateReceiver : BroadcastReceiver() {
 
-    companion object {
-        private const val TAG = "SCR:PhoneStateReceiver"
-    }
-
     /**
      * Called by the Android framework when a phone-state change broadcast is received.
      *
@@ -57,7 +53,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         // NOTE: According to the Android source code, in case of "Double Broadcast", if the incoming number is anonymous, it should be an empty string.
         val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
 
-        AppLogger.v(TAG, "Raw broadcast received: state=$state number=$number")
+        AppLogger.v( "Raw broadcast received: state=$state number=$number")
 
         // Forward the phone state and number to the session manager.
         // We now forward everything (including null) to let the PhoneStateSessionManager handle the Verification Window.

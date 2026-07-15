@@ -22,7 +22,6 @@ import java.util.Date
 import java.util.Locale
 
 object RecordingFileNameFormatter {
-    const val TAG = "SCR:RecordingFileNameFormatter"
     /**
      * Represents the supported placeholders that can be used in the file name template.
      * Binds the literal tag used in formatting to a localized description for the UI.
@@ -109,7 +108,7 @@ object RecordingFileNameFormatter {
             .replace(FileNamePlaceholder.CROSS_COUNTRY.tag, crossCountryStr)
             .replace(FileNamePlaceholder.PACKAGE_NAME.tag, packageName)
 
-        AppLogger.v(TAG, "Formatted base filename: '$baseName' with template '$template'")
+        AppLogger.v( "Formatted base filename: '$baseName' with template '$template'")
         return "$baseName${codec.containerExtension}"
     }
 
@@ -122,7 +121,7 @@ object RecordingFileNameFormatter {
             val appInfo = pm.getApplicationInfo(packageName, 0)
             pm.getApplicationLabel(appInfo).toString()
         } catch (e: PackageManager.NameNotFoundException) {
-            AppLogger.w(TAG, "Could not resolve app name for package '$packageName', got NameNotFoundException (privacy restriction?). Returning package name as fallback.")
+            AppLogger.w( "Could not resolve app name for package '$packageName', got NameNotFoundException (privacy restriction?). Returning package name as fallback.")
             // Fallback: return the package name itself
             packageName
         }

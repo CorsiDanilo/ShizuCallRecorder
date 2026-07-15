@@ -27,8 +27,6 @@ class AppPreferences(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "shizucallrecorder_prefs"
-
-        private const val TAG = "SCR:AppPreferences"
     }
 
     /**
@@ -47,10 +45,11 @@ class AppPreferences(context: Context) {
         const val VIBRATION_ENABLED = true
         val CALL_DETECTION_MODE = CallDetectionMode.getDefaultModeForDevice().key
         const val RECORD_THIRD_PARTY_CALLS = false
-        
-        // --- Automation ---
+
+        const val POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ENABLED = false
         const val AUTO_RECORD_INCOMING = false
         const val AUTO_RECORD_OUTGOING = false
+
         
         // --- Filters & Contacts ---
         const val IGNORE_ANONYMOUS_INCOMING = false
@@ -100,6 +99,7 @@ class AppPreferences(context: Context) {
         // --- Others ---
         RECORDING_FOLDER_URI("recording_folder_uri"),
         VIBRATION_ENABLED("vibration_enabled"),
+        POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ENABLED ("post_recording_file_actions_notification_enabled"),
         AUTO_RECORD_INCOMING("auto_record_incoming"),
         AUTO_RECORD_OUTGOING("auto_record_outgoing"),
         IGNORE_ANONYMOUS_INCOMING("ignore_anonymous_incoming"),
@@ -238,6 +238,11 @@ class AppPreferences(context: Context) {
     /** Sets whether vibration is enabled. */
     fun setVibrationEnabled(enabled: Boolean) = setBoolean(Key.VIBRATION_ENABLED, enabled)
 
+    /** Checks if post-recording file actions notification is enabled. */
+    fun isPostRecordingFileActionsNotificationEnabled() = getBoolean(Key.POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ENABLED, DefaultsValue.POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ENABLED)
+    /** Sets whether post-recording file actions notification is enabled. */
+    fun setPostRecordingFileActionsNotificationEnabled(enabled: Boolean) = setBoolean(Key.POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ENABLED, enabled)
+
     /**
      * Gets the current preferred detection mode, automatically falling back
      * to a supported system mode if the saved preference is illegal for the current API.
@@ -247,7 +252,7 @@ class AppPreferences(context: Context) {
         val savedMode = try {
             CallDetectionMode.fromKey(savedKey)
         } catch (e: IllegalArgumentException) {
-            AppLogger.e(TAG, "Invalid saved CallDetectionMode key: $savedKey, falling back to default. Error: ${e.message}")
+            AppLogger.e( "Invalid saved CallDetectionMode key: $savedKey, falling back to default. Error: ${e.message}")
             CallDetectionMode.getDefaultModeForDevice()
         }
 
@@ -255,7 +260,7 @@ class AppPreferences(context: Context) {
         return if (savedMode.isSupportedOnCurrentApi()) {
             savedMode
         } else {
-            AppLogger.w(TAG, "Saved CallDetectionMode ${savedMode.key} is not supported on current API level, falling back to default.")
+            AppLogger.w( "Saved CallDetectionMode ${savedMode.key} is not supported on current API level, falling back to default.")
             CallDetectionMode.getDefaultModeForDevice()
         }
     }
@@ -322,16 +327,16 @@ class AppPreferences(context: Context) {
     /** Sets the contacts mode defining which outgoing calls are ignored. */
     fun setIgnoreContactsModeOutgoing(mode: IgnoreContactsMode) = setString(Key.IGNORE_CONTACTS_MODE_OUTGOING, mode.key)
 
-    /** Gets the set of specific contact numbers to ignore for incoming calls. */
+    /** Gets the set of specific contact lookup id to ignore for incoming calls. */
     fun getIgnoredContactsIncoming() = getStringSet(Key.IGNORED_CONTACTS_INCOMING, DefaultsValue.IGNORED_CONTACTS_INCOMING)
     
-    /** Sets the set of specific contact numbers to ignore for incoming calls. */
+    /** Sets the set of specific contact lookup id to ignore for incoming calls. */
     fun setIgnoredContactsIncoming(numbers: Set<String>) = setStringSet(Key.IGNORED_CONTACTS_INCOMING, numbers)
 
-    /** Gets the set of specific contact numbers to ignore for outgoing calls. */
+    /** Gets the set of specific contact lookup id to ignore for outgoing calls. */
     fun getIgnoredContactsOutgoing() = getStringSet(Key.IGNORED_CONTACTS_OUTGOING, DefaultsValue.IGNORED_CONTACTS_OUTGOING)
     
-    /** Sets the set of specific contact numbers to ignore for outgoing calls. */
+    /** Sets the set of specific contact lookup id to ignore for outgoing calls. */
     fun setIgnoredContactsOutgoing(numbers: Set<String>) = setStringSet(Key.IGNORED_CONTACTS_OUTGOING, numbers)
 
     // -------- Debug --------

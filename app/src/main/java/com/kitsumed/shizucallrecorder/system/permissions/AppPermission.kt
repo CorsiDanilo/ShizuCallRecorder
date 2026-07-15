@@ -57,9 +57,6 @@ sealed class AppPermission(
     val descriptionResId: Int,
     val icon: ImageVector
 ) {
-    companion object {
-        private const val TAG = "SCR:AppPermission"
-    }
 
     /**
      * Checks if the permission is granted.
@@ -126,7 +123,7 @@ sealed class AppPermission(
 
             try {
                 if (!ShizukuConnectionManager.isAvailable()) {
-                    AppLogger.e(TAG, "Shizuku is not available. Cannot escalate privileges for $permissionIdentifier")
+                    AppLogger.e( "Shizuku is not available. Cannot escalate privileges for $permissionIdentifier")
                     return false
                 }
                 val shellService = shizukuManager.getShellService()
@@ -135,7 +132,7 @@ sealed class AppPermission(
                 val validSteps = escalationAttemptsChain.filter { Build.VERSION.SDK_INT >= it.minApi && Build.VERSION.SDK_INT <= it.maxApi }
 
                 for (step in validSteps) {
-                    AppLogger.i(TAG, "Attempting step type: ${step::class.simpleName} for permission $permissionIdentifier")
+                    AppLogger.i( "Attempting step type: ${step::class.simpleName} for permission $permissionIdentifier")
 
                     when (step) {
                         is EscalationStep.PackageAppOp -> shellService.grantAppOpByPackage(packageName, step.opString, userId)
@@ -145,18 +142,18 @@ sealed class AppPermission(
 
                     // Verify if the permission is granted after each escalation step
                     if (isGranted(context)) {
-                        AppLogger.i(TAG, "Successfully granted permission $permissionIdentifier! Privilege acquired via ${step::class.simpleName} step.")
+                        AppLogger.i( "Successfully granted permission $permissionIdentifier! Privilege acquired via ${step::class.simpleName} step.")
                         return true
                     } else {
-                        AppLogger.w(TAG, "Step ${step::class.simpleName} did not grant permission $permissionIdentifier.")
+                        AppLogger.w( "Step ${step::class.simpleName} did not grant permission $permissionIdentifier.")
                     }
                 }
 
-                AppLogger.e(TAG, "All escalation steps exhausted for permission $permissionIdentifier. Cannot grant permission.")
+                AppLogger.e( "All escalation steps exhausted for permission $permissionIdentifier. Cannot grant permission.")
                 return false
 
             } catch (e: Exception) {
-                AppLogger.e(TAG, "Exception during privilege escalation", e)
+                AppLogger.e( "Exception during privilege escalation", e)
                 return false
             } finally {
                 shizukuManager.unbind()

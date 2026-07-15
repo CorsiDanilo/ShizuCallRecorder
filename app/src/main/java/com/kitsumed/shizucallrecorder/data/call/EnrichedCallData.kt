@@ -36,6 +36,7 @@ data class EnrichedCallData(
     val callerName: String? = null,
     val packageName: String? = null
 ) : Parcelable {
+
     /**
      * Returns the best available phone number for display and filename purposes.
      * Try the standardized E.164 number first, then fall back to the normalized phone number if necessary.
@@ -43,8 +44,6 @@ data class EnrichedCallData(
     fun getBestNumber() = formattedE164Number ?: normalisedPhoneNumber
 
     companion object {
-        const val TAG = "SCR:EnrichedCallData"
-
         /**
          * The key used to pass RecordingMetadata in an Intent when starting the recording service.
          */
@@ -72,7 +71,7 @@ data class EnrichedCallData(
                 val parsedNumber = phoneNumberManager.parsePhoneNumber(raw)
                 // If parsing failed
                 if (parsedNumber == null) {
-                    AppLogger.w(TAG, "Failed to parse phone number '$raw', skipping enrichment.")
+                    AppLogger.w( "Failed to parse phone number '$raw', skipping enrichment.")
                     return@withContext EnrichedCallData(
                         normalisedPhoneNumber = PhoneNumberManager.normalisePhoneNumber(raw), // Safety normalizing, the number should already have been.
                         direction = base.direction,
@@ -90,13 +89,13 @@ data class EnrichedCallData(
                 if (base.osProvidedCallerName.isNullOrBlank()) {
                     callerName = getContactName(context, raw)
                     if (callerName != null) {
-                        AppLogger.v(TAG, "Found contact name '$callerName' for number '$raw'")
+                        AppLogger.v( "Found contact name '$callerName' for number '$raw'")
                     } else {
-                        AppLogger.v(TAG, "No contact name found for number '$raw'")
+                        AppLogger.v( "No contact name found for number '$raw'")
                     }
                 }
 
-                AppLogger.v(TAG, "Enriched metadata for number: raw='$raw', standardized='$standardized', crossCountry=$crossCountry, callerName='$callerName'")
+                AppLogger.v( "Enriched metadata for number: raw='$raw', standardized='$standardized', crossCountry=$crossCountry, callerName='$callerName'")
                 return@withContext EnrichedCallData(
                     normalisedPhoneNumber = PhoneNumberManager.normalisePhoneNumber(raw), // Safety normalizing, the number should already have been.
                     formattedE164Number = standardized,

@@ -127,8 +127,8 @@ fun SettingsScreen(
         onSelectFolder = { folderPickerLauncher.launch(null) },
         onOpenContactsIncoming = { contactPickerViewModel.openContactPicker(ContactPickerType.INCOMING) },
         onOpenContactsOutgoing = { contactPickerViewModel.openContactPicker(ContactPickerType.OUTGOING) },
-        onConfirmContacts = { numbers ->
-            contactPickerViewModel.confirmContactPicker(numbers)
+        onConfirmContacts = { lookupIDs ->
+            contactPickerViewModel.confirmContactPicker(lookupIDs)
             // Refresh the screen so the new contact list information is shown immediately after confirming and closing the dialog.
             viewModel.refresh()
         },
@@ -211,7 +211,7 @@ fun SettingsContent(
                 ContactPickerType.OUTGOING -> stringResource(R.string.settings_select_contacts_outgoing)
             },
             contacts = picker.contacts,
-            initialSelection = picker.selectedNumbers,
+            initialSelection = picker.selectedContactsLookupId,
             onConfirm = onConfirmContacts,
             onDismiss = onDismissContacts
         )
@@ -324,7 +324,6 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
     val currentThemeMode = remember(updateTrigger) { preferences.getThemeMode() }
     val isDynamicColorEnabled = remember(updateTrigger) { preferences.isDynamicColorEnabled() }
     val isShowToastsEnabled = remember(updateTrigger) { preferences.isShowToastsEnabled() }
-    val isVibrationEnabled = remember(updateTrigger) { preferences.isVibrationEnabled() }
     val context = LocalContext.current
     val resources = LocalResources.current
 
@@ -396,11 +395,6 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
             label           = stringResource(R.string.settings_show_toasts),
             checked         = isShowToastsEnabled,
             onCheckedChange = { actions.setShowToastsEnabled(it) }
-        )
-        ToggleListItem(
-            label           = stringResource(R.string.settings_vibration_enabled),
-            checked         = isVibrationEnabled,
-            onCheckedChange = { actions.setVibrationEnabled(it) }
         )
     }
 }
@@ -527,6 +521,8 @@ private fun RecordingSection(
     val callDetectionMode = remember(updateTrigger) { preferences.getCallDetectionMode() }
     val recordThirdPartyCalls = remember(updateTrigger) { preferences.isRecordThirdPartyCallsEnabled() }
     val fileNameFormat = remember(updateTrigger) { preferences.getFileNameTemplate() }
+    val postRecordingFileNotifications = remember(updateTrigger) { preferences.isPostRecordingFileActionsNotificationEnabled() }
+    val isVibrationEnabled = remember(updateTrigger) { preferences.isVibrationEnabled() }
     val autoRecordIncoming = remember(updateTrigger) { preferences.isAutoRecordIncomingEnabled() }
     val autoRecordOutgoing = remember(updateTrigger) { preferences.isAutoRecordOutgoingEnabled() }
     val ignoreAnonymousIncoming = remember(updateTrigger) { preferences.isIgnoreAnonymousIncomingEnabled() }
@@ -656,6 +652,21 @@ private fun RecordingSection(
                 }
             },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+
+        ToggleListItem(
+            label = stringResource(R.string.settings_post_recording_notification),
+            description = stringResource(R.string.settings_post_recording_notification_description),
+            checked = postRecordingFileNotifications,
+            onCheckedChange = { actions.setPostRecordingFileNotification(it) }
+        )
+
+        ToggleListItem(
+            label           = stringResource(R.string.settings_vibration_enabled),
+            checked         = isVibrationEnabled,
+            onCheckedChange = { actions.setVibrationEnabled(it) }
         )
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
@@ -1256,6 +1267,7 @@ private fun SettingsScreenPreview() {
             override fun setCallDetectionMode(mode: CallDetectionMode) {}
             override fun setRecordThirdPartyCalls(enabled: Boolean) {}
             override fun setAutoDeleteDays(days: Int) {}
+            override fun setPostRecordingFileNotification(enabled: Boolean) {}
         }
         // File name template selection dialog
         //FileNameFormatDialog(AppPreferences.DefaultsValue.FILE_NAME_TEMPLATE, {},{})

@@ -43,10 +43,6 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 class AudioRecordingEngine {
 
-    companion object {
-        private const val TAG = "SCR:AudioRecordingEngine"
-    }
-
     /**
      * Parses the raw byte stream that arrives from the shell process pipe.
      *
@@ -57,13 +53,13 @@ class AudioRecordingEngine {
     /** Writes scrcpy decoded audio packets into the output container (OPUS/AAC). */
     var scrcpyAudioMuxer: ScrcpyAudioMuxer? = null
 
-    /** Metadata captured during the [startPipeline] and locked. Used for checks in [release] if we need to query call logs for the final file name if phone number is empty. */
+    /** Metadata captured during the [startPipeline] and locked. Used for checks in [release]. */
     var initializationMetadata: EnrichedCallData? = null
         set(value) {
             if (field == null) {
                 field = value
             } else {
-                AppLogger.w(TAG, "Attempt to overwrite recording session metadata ignored. THIS SHOULD NOT HAPPEN. Original: $field, New: $value")
+                AppLogger.w( "Attempt to overwrite recording session metadata ignored. THIS SHOULD NOT HAPPEN. Original: $field, New: $value")
             }
         }
 
@@ -131,7 +127,7 @@ class AudioRecordingEngine {
         val bitRate = preferences.getAudioBitRate().takeIf { it > 0 } ?: codecEnum.defaultBitRate
         val audioSourceEnum = ScrcpyAudioSource.fromKey(preferences.getAudioSource())
 
-        AppLogger.i(TAG, "Starting recording pipeline: source=${audioSourceEnum.cliKey} codec=${codecEnum.cliKey} bitrate=$bitRate")
+        AppLogger.i( "Starting recording pipeline: source=${audioSourceEnum.cliKey} codec=${codecEnum.cliKey} bitrate=$bitRate")
 
         val fileName = RecordingFileNameFormatter.formatFileName(context, metadata, codecEnum)
 
@@ -141,7 +137,7 @@ class AudioRecordingEngine {
                 technicalLogMessage = "Failed to create audio file in SAF storage"
             )
 
-        AppLogger.d(TAG, "Created SAF recording file: ${safResult.uri}")
+        AppLogger.d( "Created SAF recording file: ${safResult.uri}")
 
         currentRecordingUri = safResult.uri
         outputPfd = safResult.descriptor
@@ -183,7 +179,7 @@ class AudioRecordingEngine {
                  * We re-initialise the muxer with the confirmed codec in case it differs from our initial assumption.
                  */
                 override fun onMetadataReceived(codec: ScrcpyAudioCodec) {
-                    AppLogger.d(TAG, "Stream metadata confirmed: codec=${codec.cliKey} fourCC=0x${codec.codecFourCC.toString(16)}")
+                    AppLogger.d( "Stream metadata confirmed: codec=${codec.cliKey} fourCC=0x${codec.codecFourCC.toString(16)}")
                     currentCodecEnum = codec
                     scrcpyAudioMuxer?.initialize(codec)
                 }
@@ -197,9 +193,9 @@ class AudioRecordingEngine {
                 /** Called when the stream ends normally (EOF) or with an error. */
                 override fun onStreamEnd(error: String?) {
                     if (error != null) {
-                        AppLogger.w(TAG, "Scrcpy-client reported stopping parsing due to an audio stream error: $error")
+                        AppLogger.w( "Scrcpy-client reported stopping parsing due to an audio stream error: $error")
                     } else {
-                        AppLogger.d(TAG, "Scrcpy-client reported our pipe read stream ended normally (EOF)")
+                        AppLogger.d( "Scrcpy-client reported our pipe read stream ended normally (EOF)")
                     }
                 }
             }
@@ -211,7 +207,7 @@ class AudioRecordingEngine {
             try {
                 scrcpyClient?.start()
             } catch (e: Exception) {
-                AppLogger.w(TAG, "Audio reader ended: ${e.message}")
+                AppLogger.w( "Audio reader ended: ${e.message}")
             }
         }
     }
@@ -280,7 +276,7 @@ class AudioRecordingEngine {
      * 5. Closes the muxer and output file descriptor to finalize the container header.
      */
     fun release(shellService: IShellService?) {
-        AppLogger.i(TAG, "Releasing session resources and recording pipeline...")
+        AppLogger.i( "Releasing session resources and recording pipeline...")
         runCatching { shellService?.stopRecording() }
 
         runCatching {
@@ -308,9 +304,9 @@ class AudioRecordingEngine {
             currentRecordingUri?.let { uri ->
                 DocumentFile.fromSingleUri(context, uri)?.delete()
             }
-            AppLogger.d(TAG, "Cleaned up empty file after start failure")
+            AppLogger.d( "Cleaned up empty file after start failure")
         } catch (e: Exception) {
-            AppLogger.w(TAG, "Failed to cleanup empty file", e)
+            AppLogger.w( "Failed to cleanup empty file", e)
         }
     }
 }

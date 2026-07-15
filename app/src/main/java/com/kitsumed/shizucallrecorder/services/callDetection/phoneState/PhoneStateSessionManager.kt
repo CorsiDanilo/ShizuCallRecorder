@@ -35,8 +35,6 @@ class PhoneStateSessionManager private constructor(context: Context) {
 
     // Constants accessible globally
     companion object {
-        private const val TAG = "SCR:PhoneStateSessionManager"
-
         // Singleton instance management
         @Volatile
         private var INSTANCE: PhoneStateSessionManager? = null
@@ -98,10 +96,10 @@ class PhoneStateSessionManager private constructor(context: Context) {
                     // it's the same call session, we want to allow updating the phone number. The only exception is if we already sent a start intent to
                     // the RecordingForegroundService, in that case we want to keep the original metadata for consistency between the two, even if it's anonymous.
                     field = value
-                    AppLogger.d(TAG, "Updated ongoing session call metadata with late number discovery: ${value.rawPhoneNumber} for direction ${value.direction}.")
+                    AppLogger.d( "Updated ongoing session call metadata with late number discovery: ${value.rawPhoneNumber} for direction ${value.direction}.")
                 } else
                 {
-                    AppLogger.d(TAG, "Attempted to change ongoing session call metadata from ${field?.direction} to ${value.direction}. This is not allowed since the current session is already locked. isSameCallDirection=$isSameCallDirection, isLateNumberDiscovery=$isLateNumberDiscovery, wasRecordingServiceStartIntentSend=${wasRecordingServiceStartIntentSend}")
+                    AppLogger.d( "Attempted to change ongoing session call metadata from ${field?.direction} to ${value.direction}. This is not allowed since the current session is already locked. isSameCallDirection=$isSameCallDirection, isLateNumberDiscovery=$isLateNumberDiscovery, wasRecordingServiceStartIntentSend=${wasRecordingServiceStartIntentSend}")
                 }
             }
 
@@ -148,7 +146,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
 
 
     init {
-        AppLogger.d(TAG, "PhoneStateSessionManager initialised")
+        AppLogger.d( "PhoneStateSessionManager initialised")
     }
 
     // Public API
@@ -185,14 +183,14 @@ class PhoneStateSessionManager private constructor(context: Context) {
         // Normalize the phone number for consistent logging and processing, while also handling potential null or anonymous values from the raw OS stream.
         val normalizedNumber = PhoneNumberManager.normalisePhoneNumber(phoneNumber ?: "")
 
-        AppLogger.i(TAG, "Received new phone state: $stateString (TelephonyManagerINT:$receivedCallState) | Number: ${normalizedNumber.ifEmpty { "ANONYMOUS/UNKNOWN" }}")
+        AppLogger.i( "Received new phone state: $stateString (TelephonyManagerINT:$receivedCallState) | Number: ${normalizedNumber.ifEmpty { "ANONYMOUS/UNKNOWN" }}")
 
         // 1. Handle IDLE (Stop, no longer in a call)
         if (receivedCallState == TelephonyManager.CALL_STATE_IDLE) {
             sessionJob?.cancel() // Cancel pending verification window or ongoing session if any
             // Only trigger stop logic if we were previously in an active session. Prevents redundant stop commands on possible repeated IDLE broadcasts.
             if (session.isSessionActive) {
-                AppLogger.d(TAG, "Phone state is now idle (call ended). Sending ending recording service...")
+                AppLogger.d( "Phone state is now idle (call ended). Sending ending recording service...")
                 RecordingDecisionEngine.getInstance(appContext).endRecordingSession()
                 session.clear()
             }
@@ -241,7 +239,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
         if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
             // Handle anonymous and blank numbers (due to double broadcast behavior with one having no number)
             if (normalizedNumber.isEmpty()) {
-                AppLogger.d(TAG, "Number is blank. May be a anonymous call. Starting 500ms verification window.")
+                AppLogger.d( "Number is blank. May be a anonymous call. Starting 500ms verification window.")
                 delay(500)
                 // If rawNumber is still blank after delay, we continue as anonymous. If we receive another broadcast, cancel is called and stop this logic here.
                 // Meaning we would restart a new 500ms window.
@@ -252,7 +250,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
             withContext(Dispatchers.Main) {
                 // Guard clause: Prevent re-entry if a pipeline execution is already successfully acknowledged
                 if (session.wasRecordingServiceStartIntentSend) {
-                    AppLogger.d(TAG, "Current call session has already processed via RecordingDecisionEngine. Skipping duplicate execution to prevent dual-call issues.")
+                    AppLogger.d( "Current call session has already processed via RecordingDecisionEngine. Skipping duplicate execution to prevent dual-call issues.")
                     return@withContext
                 }
 
@@ -268,7 +266,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
     @Synchronized
     fun handleDebugAction(action: String) {
         if (!preferences.isDebugEnabled()) {
-            AppLogger.w(TAG, "Received debug action '$action' but debug mode is disabled. Ignoring.")
+            AppLogger.w( "Received debug action '$action' but debug mode is disabled. Ignoring.")
             return
         }
 
@@ -282,7 +280,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
             else -> return
         }
 
-        AppLogger.i(TAG, "Handling debug action: '$action' ($telephonyExtState) with debug number: $debugPhoneNumber")
+        AppLogger.i( "Handling debug action: '$action' ($telephonyExtState) with debug number: $debugPhoneNumber")
         handlePhoneState(telephonyExtState, debugPhoneNumber)
     }
 }

@@ -11,10 +11,6 @@ package com.kitsumed.shizucallrecorder.services.shell
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 
 class ShellCommandExecutor {
-    companion object {
-        private const val TAG = "SCR:ShellCommandExecutor"
-    }
-
     /**
      * Grants an AppOp permission at the package level for a specific user profile.
      *
@@ -67,21 +63,21 @@ class ShellCommandExecutor {
      */
     private fun execute(vararg command: String): Boolean {
         return try {
-            AppLogger.i(TAG, "Executing command: ${command.joinToString(" ")}")
+            AppLogger.i( "Executing command: ${command.joinToString(" ")}")
             val process = ProcessBuilder(*command).start()
             val exitCode = process.waitFor()
             val inputOutput = process.inputStream.bufferedReader().readText().trim()
             val errorOutput = process.errorStream.bufferedReader().readText().trim()
 
             if (exitCode == 0 && errorOutput.isEmpty()) {
-                AppLogger.i(TAG, "Command executed successfully. Output: ${inputOutput.ifBlank { "Empty Output" }}")
+                AppLogger.i( "Command executed successfully. Output: ${inputOutput.ifBlank { "Empty Output" }}")
                 true
             } else {
-                AppLogger.e(TAG, "Command failed. Exit code $exitCode. Output: ${inputOutput.ifBlank { "Empty Output" }}, Error: ${errorOutput.ifBlank { "Empty Error" }}")
+                AppLogger.e( "Command failed. Exit code $exitCode. Output: ${inputOutput.ifBlank { "Empty Output" }}, Error: ${errorOutput.ifBlank { "Empty Error" }}")
                 false
             }
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Exception executing command: ${command.joinToString(" ")}", e)
+            AppLogger.e( "Exception executing command: ${command.joinToString(" ")}", e)
             false
         }
     }

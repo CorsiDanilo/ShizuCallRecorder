@@ -43,10 +43,6 @@ class ScrcpyAudioMuxer(
     private val outputDisplayPath: String
 ) : Closeable {
 
-    companion object {
-        private const val TAG = "SCR:ScrcpyAudioMuxer"
-    }
-
     // Muxer state
 
     /** The underlying [MediaMuxer] instance; null until [initialize] is called. */
@@ -110,7 +106,7 @@ class ScrcpyAudioMuxer(
     fun initialize(codec: ScrcpyAudioCodec) {
         if (muxer != null) return // Already initialised; ignore duplicate calls.
 
-        AppLogger.d(TAG, "Initialising muxer: codec=${codec.cliKey} format=${codec.outputFormat} path='$outputDisplayPath'")
+        AppLogger.d( "Initialising muxer: codec=${codec.cliKey} format=${codec.outputFormat} path='$outputDisplayPath'")
         muxer = MediaMuxer(outputFileDescriptor, codec.outputFormat)
     }
 
@@ -137,7 +133,7 @@ class ScrcpyAudioMuxer(
 
         // Guard: only write if the muxer is fully started and we have a valid track.
         if (!isMuxerStarted || audioTrackIndex < 0) {
-            AppLogger.w(TAG, "writePacket(): muxer not ready – dropping frame")
+            AppLogger.w( "writePacket(): muxer not ready – dropping frame")
             return
         }
 
@@ -150,14 +146,14 @@ class ScrcpyAudioMuxer(
         if (firstPacketTimeNanos == -1L) {
             firstPacketTimeNanos = nowNanos
             lastPacketWallClockNanos = nowNanos
-            AppLogger.d(TAG, "First audio frame: wall-clock origin set, pts=0")
+            AppLogger.d( "First audio frame: wall-clock origin set, pts=0")
         } else {
             // This is the "temporary" fix for the pause feature (audio silence) we just fully cut it out to prevent corrupting the file.
             val gapNanos = nowNanos - lastPacketWallClockNanos
             if (gapNanos > GAP_THRESHOLD_NANOS) {
                 val ignoredNanos = gapNanos - GAP_SLACK_NANOS
                 totalIgnoredGapNanos += ignoredNanos
-                AppLogger.d(TAG, "Detected huge gap silence/pause of ${gapNanos / 1_000_000} ms. Squashing ${ignoredNanos / 1_000_000} ms.")
+                AppLogger.d( "Detected huge gap silence/pause of ${gapNanos / 1_000_000} ms. Squashing ${ignoredNanos / 1_000_000} ms.")
             }
             lastPacketWallClockNanos = nowNanos
         }
@@ -190,9 +186,9 @@ class ScrcpyAudioMuxer(
      */
     override fun close() {
         if (isMuxerStarted) {
-            AppLogger.d(TAG, "Finalising muxer for '$outputDisplayPath'")
+            AppLogger.d( "Finalising muxer for '$outputDisplayPath'")
             runCatching { muxer?.stop() }.onFailure { e ->
-                AppLogger.e(TAG, "Muxer stop failed (file may be incomplete): ${e.message}")
+                AppLogger.e( "Muxer stop failed (file may be incomplete): ${e.message}")
             }
         }
         runCatching { muxer?.release() }
@@ -203,7 +199,7 @@ class ScrcpyAudioMuxer(
         lastWrittenPtsUs       = -1L
         lastPacketWallClockNanos = -1L
         totalIgnoredGapNanos     = 0L
-        AppLogger.d(TAG, "Muxer closed")
+        AppLogger.d( "Muxer closed")
     }
 
     // Private helpers
@@ -218,7 +214,7 @@ class ScrcpyAudioMuxer(
     private fun addAudioTrack(configData: ByteArray, codec: ScrcpyAudioCodec) {
         val csdBytes = configData.takeIf { it.isNotEmpty() }
         if (csdBytes == null) {
-            AppLogger.e(TAG, "Empty config data received. Cannot initialize audio track.")
+            AppLogger.e( "Empty config data received. Cannot initialize audio track.")
             return
         }
 
@@ -232,12 +228,12 @@ class ScrcpyAudioMuxer(
 
         audioTrackIndex = muxer?.addTrack(mediaFormat) ?: -1
         if (audioTrackIndex < 0) {
-            AppLogger.e(TAG, "Failed to add audio track (addTrack returned $audioTrackIndex)")
+            AppLogger.e( "Failed to add audio track (addTrack returned $audioTrackIndex)")
             return
         }
 
         muxer?.start()
         isMuxerStarted = audioTrackIndex >= 0
-        AppLogger.d(TAG, "Audio track added (index=$audioTrackIndex mime=${codec.mimeType}) – muxer started")
+        AppLogger.d( "Audio track added (index=$audioTrackIndex mime=${codec.mimeType}) – muxer started")
     }
 }
