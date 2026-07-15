@@ -331,4 +331,37 @@
     <string name="recording_shizuku_not_started">Shizuku-Server process is stopped. Please start Shizuku and ensure it is always able to run when the app wants to record audio.</string>
     <string name="recording_shizuku_permission_denied">Please allow the application to use Shizuku. Permission was denied.</string>
     <string name="recording_shizuku_auth_key_missing">Shizuku Intents authentication key is missing. Please enter it in the app settings.</string>
+
+    <!-- ========================================== -->
+    <!-- RECORDINGS SCREEN                          -->
+    <!-- ========================================== -->
+    <string name="recordings_title">Recordings</string>
+    <string name="recordings_subtitle">Play, rename, share, or delete recordings</string>
+    <string name="recordings_screen_title">Recordings</string>
+    <string name="recordings_search_placeholder">Search recordings…</string>
+    <string name="recordings_empty_title">No recordings found</string>
+    <string name="recordings_empty_subtitle">Recordings will appear here once a call is completed</string>
+    <string name="recordings_no_folder_title">No folder configured</string>
+    <string name="recordings_no_folder_subtitle">Configure a save folder in settings</string>
+    <string name="recordings_go_to_settings">Go to settings</string>
+    <string name="recordings_delete_confirm_title">Delete recording</string>
+    <string name="recordings_delete_confirm_body">Delete this recording? This action cannot be undone.</string>
+    <string name="recordings_delete_multi_confirm_title">Delete recordings</string>
+    <string name="recordings_delete_multi_confirm_body">Delete %d recordings? This action cannot be undone.</string>
+    <string name="recordings_rename_title">Rename</string>
+    <string name="recordings_rename_placeholder">File name</string>
+    <string name="recordings_action_delete">Delete</string>
+    <string name="recordings_action_rename">Rename</string>
+    <string name="recordings_action_share">Share</string>
+    <string name="recordings_action_cancel">Cancel</string>
+    <string name="recordings_action_confirm">Confirm</string>
+    <string name="recordings_selected_count">%d selected</string>
+    <string name="recordings_direction_incoming">Incoming</string>
+    <string name="recordings_direction_outgoing">Outgoing</string>
+    <!-- Recordings: Player -->
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_rewind">Rewind 15s</string>
+    <string name="player_forward">Forward 15s</string>
 </resources>
+

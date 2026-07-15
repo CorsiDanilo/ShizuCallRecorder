@@ -54,24 +54,35 @@ jobs:
           # Decode the keystore from base64 secret, ignoring any garbage/newlines
           echo "$ENCODED_KEYSTORE" | base64 --decode --ignore-garbage > app/release-keystore.jks
 
-      - name: Build Release APK
+      - name: Build Release and Debug APKs
         env:
           KEYSTORE_FILE: release-keystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease assembleDebug --stacktrace
 
-      - name: Prepare and Hash APK Artifact
+      - name: Prepare and Hash APK Artifacts
         run: |
           VERSION="${{ steps.get-version.outputs.VERSION }}"
+          
+          # Release APK
           APK_PATH="app/build/outputs/apk/release/app-release.apk"
           if [ ! -f "$APK_PATH" ]; then
             echo "Error: Release APK not found at $APK_PATH"
             exit 1
           fi
-          cp "$APK_PATH" "ShizuCallRecorder-${VERSION}.apk"
-          sha256sum "ShizuCallRecorder-${VERSION}.apk" > "ShizuCallRecorder-${VERSION}.apk.sha256"
+          cp "$APK_PATH" "ShizuCallRecorder-${VERSION}-Release.apk"
+          sha256sum "ShizuCallRecorder-${VERSION}-Release.apk" > "ShizuCallRecorder-${VERSION}-Release.apk.sha256"
+
+          # Debug APK
+          DEBUG_APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$DEBUG_APK_PATH" ]; then
+            echo "Error: Debug APK not found at $DEBUG_APK_PATH"
+            exit 1
+          fi
+          cp "$DEBUG_APK_PATH" "ShizuCallRecorder-${VERSION}-Debug.apk"
+          sha256sum "ShizuCallRecorder-${VERSION}-Debug.apk" > "ShizuCallRecorder-${VERSION}-Debug.apk.sha256"
 
       - name: Clean up Signing Files
         if: always()
@@ -82,8 +93,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk
-            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}.apk.sha256
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-Release.apk
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-Release.apk.sha256
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-Debug.apk
+            ShizuCallRecorder-${{ steps.get-version.outputs.VERSION }}-Debug.apk.sha256
           generate_release_notes: true
           body_path: CHANGELOG.md
         env:

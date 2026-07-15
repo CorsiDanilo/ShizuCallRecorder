@@ -92,6 +92,7 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
+    onOpenRecordings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -134,6 +135,7 @@ fun SettingsScreen(
         },
         onDismissContacts = { contactPickerViewModel.dismissContactPicker() },
         onExportLogs = { exportLogLauncher.launch("shizucallrecorder_bug_report.log") },
+        onOpenRecordings = onOpenRecordings,
         modifier = modifier
     )
 }
@@ -165,6 +167,7 @@ fun SettingsContent(
     onConfirmContacts: (Set<String>) -> Unit,
     onDismissContacts: () -> Unit,
     onExportLogs: () -> Unit,
+    onOpenRecordings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -185,6 +188,7 @@ fun SettingsContent(
                     fontWeight = FontWeight.Bold
                 )
             }
+            item { RecordingsEntryCard(onOpenRecordings = onOpenRecordings) }
             item { AboutSection(versionString = actions.getAppVersion()) }
             item {
                 RecordingSection(
@@ -1229,6 +1233,49 @@ private fun DebugActionGrid(actions: SettingsActions) {
 }
 
 /**
+ * A prominently placed card at the top of the Settings screen giving quick access
+ * to the Recordings management screen.
+ */
+@Composable
+private fun RecordingsEntryCard(onOpenRecordings: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenRecordings),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = stringResource(R.string.recordings_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = stringResource(R.string.recordings_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+/**
  * Safe Compose Preview for Settings.
  */
 @Preview(showBackground = true)
@@ -1282,7 +1329,8 @@ private fun SettingsScreenPreview() {
             onOpenContactsOutgoing = {},
             onConfirmContacts = {},
             onDismissContacts = {},
-            onExportLogs = {}
+            onExportLogs = {},
+            onOpenRecordings = {}
         )
     }
 }

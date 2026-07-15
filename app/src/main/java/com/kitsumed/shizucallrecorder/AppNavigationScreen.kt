@@ -35,6 +35,7 @@ import com.kitsumed.shizucallrecorder.onboarding.OnboardingStatus
 import com.kitsumed.shizucallrecorder.ui.screens.DisclaimerScreen
 import com.kitsumed.shizucallrecorder.ui.screens.PermissionsScreen
 import com.kitsumed.shizucallrecorder.ui.screens.SettingsScreen
+import com.kitsumed.shizucallrecorder.ui.screens.RecordingsScreen
 import com.kitsumed.shizucallrecorder.ui.screens.SponsorScreen
 import com.kitsumed.shizucallrecorder.ui.theme.ShizucallrecorderTheme
 import com.kitsumed.shizucallrecorder.ui.viewmodels.AppNavigationViewModel
@@ -95,7 +96,9 @@ fun AppNavigationScreen() {
 
     // resolveScreen reads the flow-backed onboardingStatus - no direct preference reads here,
     // which is what caused the stale-state bug that existed before this architecture.
-    val screenState = resolveScreen(onboardingStatus)
+    // showRecordingsScreen overrides the resolved screen when the user navigates to the recordings list.
+    var showRecordingsScreen by remember { mutableStateOf(false) }
+    val screenState = if (showRecordingsScreen) AppScreen.Recordings else resolveScreen(onboardingStatus)
 
     // Trigger when the app resume activity, we want to refresh the navigation screens since
     // the user may have changed something in the system settings (e.g. granted a permission) that affects the onboarding status.
@@ -160,10 +163,15 @@ fun AppNavigationScreen() {
                         })
                     } else {
                         SettingsScreen(
-                            viewModel = settingsViewModel
+                            viewModel = settingsViewModel,
+                            onOpenRecordings = { showRecordingsScreen = true }
                         )
                     }
                 }
+
+                AppScreen.Recordings -> RecordingsScreen(
+                    onNavigateBack = { showRecordingsScreen = false }
+                )
             }
         }
     }
@@ -171,7 +179,7 @@ fun AppNavigationScreen() {
 
 // -------- Private helpers
 
-/** The three top-level screens. [AppNavigationScreen] shows one of these at a time. */
+/** The top-level screens. [AppNavigationScreen] shows one of these at a time. */
 private enum class AppScreen {
     /** The user has not yet accepted the legal disclaimer. */
     Disclaimer,
@@ -180,7 +188,10 @@ private enum class AppScreen {
     Permissions,
 
     /** Everything is set up. Show the settings. */
-    Settings
+    Settings,
+
+    /** The user opened the recordings management screen from Settings. */
+    Recordings
 }
 
 /**

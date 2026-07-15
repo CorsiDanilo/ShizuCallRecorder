@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-07-15
+### Added
+- **Recordings Management Screen**: A new dedicated screen to browse, play, rename, share, and delete audio recordings directly from the app.
+- **Swipe Gestures**: Swipe left to delete, swipe right to rename recordings.
+- **Multi-Selection Mode**: Long-press a recording to enter bulk selection for deleting or sharing multiple files at once.
+- **In-App Media Player**: Minimalist audio player sliding up from the bottom to preview your recordings.
+- **Search**: Real-time filtering of recordings by file name.
+
 ## [1.2.0] - 2026-07-05
 ### Added
 - **Multi-language support**: Expanded localizations for strings across Arabic, German, Spanish, French, Hungarian, Italian, Japanese, Polish, Portuguese, Russian, Turkish, Vietnamese, and Chinese.
