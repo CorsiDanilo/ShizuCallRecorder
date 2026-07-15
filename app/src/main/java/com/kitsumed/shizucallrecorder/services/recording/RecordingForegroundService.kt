@@ -15,6 +15,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.provider.CallLog
 import androidx.core.content.IntentCompat
 import androidx.documentfile.provider.DocumentFile
@@ -96,6 +97,8 @@ class RecordingForegroundService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // ── Recording session state ────────────────────────────────────────────────────────
+
+    private var wakeLock: PowerManager.WakeLock? = null
 
     /** The current state of the service. */
     @Volatile
@@ -308,6 +311,10 @@ class RecordingForegroundService : Service() {
             // 2. Try to start the pipeline
             activeSession.startPipeline(this, service, metadata)
             // 3. Success
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ShizuCallRecorder:RecordingWakeLock").apply {
+                acquire(10 * 60 * 1000L) // 10 minutes timeout
+            }
             currentState = RecordingServiceState.Active(activeSession, false, metadata)
             AppLogger.i( "Recording pipeline started successfully")
         } catch (e: PipelineInitializationException) {
@@ -333,6 +340,11 @@ class RecordingForegroundService : Service() {
             stopSelf() // Stop the service since the session is over
             return
         }
+
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+        }
+        wakeLock = null
         
         if (discard) {
             AppLogger.i("Discarding active recording session...")
@@ -363,13 +375,7 @@ class RecordingForegroundService : Service() {
                         notificationHelper.showPostCallNotification(filePathUri, metadata)
                     }
                 }
-                
-                CoroutineScope(Dispatchers.Main).launch {
-                    notificationHelper.showRecordingSavedNotification(filePathUri)
-                }
             }
-        } else if (uriToRename != null) {
-            notificationHelper.showRecordingSavedNotification(uriToRename)
         }
 
         currentState = RecordingServiceState.Standby(null)
