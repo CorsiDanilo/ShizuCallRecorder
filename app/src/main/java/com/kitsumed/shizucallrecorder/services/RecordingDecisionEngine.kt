@@ -16,6 +16,7 @@ import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.data.call.CallDirection
 import com.kitsumed.shizucallrecorder.data.call.EnrichedCallData
 import com.kitsumed.shizucallrecorder.data.call.RawCallData
+import com.kitsumed.shizucallrecorder.services.callDetection.phoneState.PhoneStateTemporaryCache
 import com.kitsumed.shizucallrecorder.services.recording.RecordingForegroundService
 import com.kitsumed.shizucallrecorder.system.permissions.PermissionChecks
 import com.kitsumed.shizucallrecorder.utils.AppLogger
@@ -85,6 +86,10 @@ class RecordingDecisionEngine private constructor(context: Context) {
         // Step 2: Evaluate recording decision
         val shouldAutoRecord = shouldAutoRecord(enrichedData)
         AppLogger.i( "Recording decision for ${enrichedData.direction} call is: shouldAutoRecord=$shouldAutoRecord")
+
+        if (shouldAutoRecord) {
+            PhoneStateTemporaryCache(appContext).saveActiveSession(rawData)
+        }
 
         // Step 3: Fire appropriate Intent
         return fireRecordingServiceIntent(enrichedData, shouldAutoRecord)

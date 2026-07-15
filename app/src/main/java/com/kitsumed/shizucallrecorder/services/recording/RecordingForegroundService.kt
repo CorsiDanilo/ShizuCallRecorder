@@ -20,11 +20,14 @@ import android.provider.CallLog
 import androidx.core.content.IntentCompat
 import androidx.documentfile.provider.DocumentFile
 import com.kitsumed.shizucallrecorder.IShellService
+import com.kitsumed.shizucallrecorder.services.callDetection.phoneState.PhoneStateSessionManager
 import com.kitsumed.shizucallrecorder.R
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.data.call.CallDirection
 import com.kitsumed.shizucallrecorder.data.call.EnrichedCallData
 import com.kitsumed.shizucallrecorder.integrations.shizuku.ShizukuConnectionManager
+import android.telephony.TelephonyManager
+import com.kitsumed.shizucallrecorder.services.callDetection.phoneState.PhoneStateTemporaryCache
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import com.kitsumed.shizucallrecorder.utils.PhoneNumberManager
 import com.kitsumed.shizucallrecorder.utils.RecordingFileNameFormatter
@@ -79,6 +82,10 @@ class RecordingForegroundService : Service() {
 
         /** Intent action sent to this service when the user dismisses the notification (Android 14+). */
         const val ACTION_NOTIFICATION_DISMISSED = "com.kitsumed.shizucallrecorder.SERVICE_NOTIFICATION_DISMISSED"
+
+        @Volatile
+        var isRunning: Boolean = false
+            private set
     }
 
     // ── Dependencies ──────────────────────────────────────────────────────────
@@ -124,6 +131,7 @@ class RecordingForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         notificationHelper = RecordingNotificationHelper(this)
         notificationHelper.createNotificationChannels()
 
@@ -135,6 +143,7 @@ class RecordingForegroundService : Service() {
             // Handle cleanup if the service dies
             if (hasSession) {
                 notificationHelper.showErrorNotification(getString(R.string.recording_error_shizuku_disconnected_unexpectedly))
+                PhoneStateSessionManager.getInstance(this).resetStartIntentSentFlag()
                 stopRecordingSessionAndService(false)
             }
         }
@@ -272,9 +281,13 @@ class RecordingForegroundService : Service() {
             if (authKey.isNotBlank()) {
                 ShizukuConnectionManager.startServer(this, authKey)
             } else {
-                notificationHelper.showErrorNotification(getString(R.string.recording_shizuku_auth_key_missing))
-                notificationHelper.showToast(getString(R.string.recording_shizuku_auth_key_missing))
-                stopRecordingSessionAndService(false)
+                if (!ShizukuConnectionManager.isAvailable()) {
+                    notificationHelper.showErrorNotification(getString(R.string.recording_shizuku_auth_key_missing))
+                    notificationHelper.showToast(getString(R.string.recording_shizuku_auth_key_missing))
+                    stopRecordingSessionAndService(false)
+                } else {
+                    AppLogger.d("Manage Shizuku is enabled and auth key is missing, but Shizuku is already running. Proceeding without starting server.")
+                }
             }
         }
     }
@@ -283,12 +296,20 @@ class RecordingForegroundService : Service() {
         // Always clean up, even if the OS kills the service mid-recording.
         // This is the guaranteed last callback before the service process is cleaned up.
         AppLogger.v( "RecordingForegroundService is destroying... Ensuring cleanup...")
+        isRunning = false
         serviceScope.cancel()
         stopRecordingSessionAndService(false)
         shizukuManager.unbind()
         if (appPreferences.isShizukuAutoManageEnabled() && !appPreferences.isShizukuKeepAliveEnabled()) {
             ShizukuConnectionManager.stopServer(this, appPreferences.getShizukuAuthKey())
         }
+
+        // Clear active session cache if the call has ended
+        val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        if (telephonyManager.callState == TelephonyManager.CALL_STATE_IDLE) {
+            PhoneStateTemporaryCache(this).clearActiveSession()
+        }
+
         super.onDestroy()
     }
 
@@ -366,15 +387,20 @@ class RecordingForegroundService : Service() {
 
         // If the user has enabled post-recording file actions, show a notification with options.
         if (appPreferences.isPostRecordingFileActionsNotificationEnabled()) {
-            activeSession.currentRecordingUri?.let { filePathUri ->
-                activeSession.initializationMetadata?.let { metadata ->
-                    // Ensure the file was written and exists
-                    val docFile = DocumentFile.fromSingleUri(applicationContext, filePathUri)
-                    if (docFile != null && docFile.exists() && docFile.length() > 0) {
-                        AppLogger.d( "Showing post-recording notification for user actions.")
-                        notificationHelper.showPostCallNotification(filePathUri, metadata)
-                    }
+            val filePathUri = activeSession.currentRecordingUri
+            val metadata = activeSession.initializationMetadata
+            if (filePathUri != null && metadata != null) {
+                val docFile = DocumentFile.fromSingleUri(applicationContext, filePathUri)
+                if (docFile != null && docFile.exists() && docFile.length() > 0) {
+                    AppLogger.d( "Showing post-recording notification for user actions.")
+                    notificationHelper.showPostCallNotification(filePathUri, metadata)
+                } else {
+                    AppLogger.w( "Recording file is missing or empty. Showing failed recording notification.")
+                    notificationHelper.showFailedRecordingNotification(metadata)
                 }
+            } else {
+                AppLogger.w( "No file URI or metadata after recording. Showing failed recording notification.")
+                notificationHelper.showFailedRecordingNotification(activeSession.initializationMetadata)
             }
         }
 

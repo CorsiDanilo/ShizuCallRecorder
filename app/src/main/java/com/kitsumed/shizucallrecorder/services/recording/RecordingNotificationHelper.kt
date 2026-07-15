@@ -40,10 +40,20 @@ class RecordingNotificationHelper(private val context: Context) {
 
         const val SERVICE_NOTIFICATION_ID = 1
         const val ERROR_NOTIFICATION_ID = 2
-        const val POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ID = 3
+        // Post-call notifications use a unique ID per recording so they don't overwrite each other.
+        // IDs are derived from the current time, offset above the fixed IDs to avoid collisions.
+        private const val POST_RECORDING_BASE_ID = 1000
         private const val REQUEST_CODE_OPEN_RECORDING = 1001
         private const val REQUEST_CODE_SHARE_RECORDING = 1002
         private const val REQUEST_CODE_DELETE_RECORDING = 1003
+
+        /**
+         * Generates a stable, unique notification ID for a post-call notification.
+         * Uses the current timestamp modulo a safe range to avoid Int overflow.
+         */
+        fun generatePostCallNotificationId(): Int {
+            return POST_RECORDING_BASE_ID + (System.currentTimeMillis() % 100_000).toInt()
+        }
     }
 
     /**
@@ -250,6 +260,12 @@ class RecordingNotificationHelper(private val context: Context) {
      */
     fun showPostCallNotification(fileUri: Uri, callMetadata: EnrichedCallData) {
         val manager = context.getSystemService(NotificationManager::class.java)
+        val notificationId = generatePostCallNotificationId()
+
+        // Use per-notification request codes to avoid PendingIntent collisions across simultaneous sessions.
+        val playRequestCode = notificationId + 1
+        val shareRequestCode = notificationId + 2
+        val deleteRequestCode = notificationId + 3
 
         // Play action
         val playIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -257,7 +273,7 @@ class RecordingNotificationHelper(private val context: Context) {
             flags = Intent.FLAG_GRANT_READ_URI_PERMISSION // Allows the receiving app to read the SAF file
         }
         val playPendingIntent = PendingIntent.getActivity(
-            context, REQUEST_CODE_OPEN_RECORDING, playIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            context, playRequestCode, playIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // Share action
@@ -268,15 +284,16 @@ class RecordingNotificationHelper(private val context: Context) {
         }
         val chooserIntent = Intent.createChooser(shareIntent, null)
         val sharePendingIntent = PendingIntent.getActivity(
-            context, REQUEST_CODE_SHARE_RECORDING, chooserIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            context, shareRequestCode, chooserIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // Delete action (Triggers our DeleteDialogConfirmationActivity)
         val deleteIntent = Intent(context, DeleteDialogConfirmationActivity::class.java).apply {
             putExtra(Intent.EXTRA_STREAM, fileUri)
+            putExtra(DeleteDialogConfirmationActivity.EXTRA_NOTIFICATION_ID, notificationId)
         }
         val deletePendingIntent = PendingIntent.getActivity(
-            context, REQUEST_CODE_DELETE_RECORDING, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            context, deleteRequestCode, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID_POST_RECORDING_FILE_ACTIONS)
@@ -291,7 +308,34 @@ class RecordingNotificationHelper(private val context: Context) {
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()
 
-        manager.notify(POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ID, notification)
+        manager.notify(notificationId, notification)
+    }
+
+    /**
+     * Shows a notification when a recording session ended but no valid file was produced (e.g., Shizuku disconnected mid-call).
+     * The notification has no file actions — it is purely informational and can be dismissed.
+     * @param callMetadata Metadata about the call that failed to produce a recording (may be null if we never received the call details).
+     */
+    fun showFailedRecordingNotification(callMetadata: EnrichedCallData?) {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        val notificationId = generatePostCallNotificationId()
+
+        val callerText = callMetadata?.getBestNumber()?.takeIf { it.isNotEmpty() }
+            ?: context.getString(R.string.post_recording_notification_unknown_caller)
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID_POST_RECORDING_FILE_ACTIONS)
+            .setSmallIcon(R.drawable.ic_outline_error)
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
+            .setContentTitle(context.getString(R.string.post_recording_failed_notification_title))
+            .setContentText(callerText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(
+                context.getString(R.string.post_recording_failed_notification_body, callerText)
+            ))
+            .setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .build()
+
+        manager.notify(notificationId, notification)
     }
 
     /**

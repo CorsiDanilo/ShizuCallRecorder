@@ -11,6 +11,7 @@ package com.kitsumed.shizucallrecorder.services.callDetection.phoneState
 import android.content.Context
 import androidx.core.content.edit
 import com.kitsumed.shizucallrecorder.data.call.CallDirection
+import com.kitsumed.shizucallrecorder.data.call.RawCallData
 import com.kitsumed.shizucallrecorder.services.callDetection.phoneState.PhoneStateTemporaryCache.Companion.MAX_AGE_MS
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 
@@ -28,6 +29,11 @@ class PhoneStateTemporaryCache(private val context: Context) {
         private const val PREFS_CACHE = "CallSessionManagerTemporaryCache"
         private const val KEY_CACHE_DIRECTION = "cache_direction"
         private const val KEY_CACHE_TIMESTAMP = "cache_timestamp"
+
+        private const val KEY_ACTIVE_PHONE_NUMBER = "active_phone_number"
+        private const val KEY_ACTIVE_DIRECTION = "active_direction"
+        private const val KEY_ACTIVE_CALLER_NAME = "active_caller_name"
+        private const val KEY_ACTIVE_PACKAGE_NAME = "active_package_name"
 
         // From online research, Phone Carriers allow a limit of up to 30s ringing time. 34s to be safe.
         private const val MAX_AGE_MS = 34000L
@@ -66,6 +72,43 @@ class PhoneStateTemporaryCache(private val context: Context) {
             }
         } else clear() // Clear stale data if it's old
         return null
+    }
+
+    /**
+     * Persists the active call metadata to handle process death during an ongoing call.
+     */
+    fun saveActiveSession(metadata: RawCallData) {
+        context.getSharedPreferences(PREFS_CACHE, Context.MODE_PRIVATE).edit {
+            putString(KEY_ACTIVE_PHONE_NUMBER, metadata.rawPhoneNumber)
+            putString(KEY_ACTIVE_DIRECTION, metadata.direction.token)
+            putString(KEY_ACTIVE_CALLER_NAME, metadata.osProvidedCallerName)
+            putString(KEY_ACTIVE_PACKAGE_NAME, metadata.packageName)
+        }
+    }
+
+    /**
+     * Restores the active call metadata in case of process death during a call.
+     */
+    fun restoreActiveSession(): RawCallData? {
+        val prefs = context.getSharedPreferences(PREFS_CACHE, Context.MODE_PRIVATE)
+        val directionToken = prefs.getString(KEY_ACTIVE_DIRECTION, null) ?: return null
+        val direction = CallDirection.fromToken(directionToken) ?: return null
+        val rawPhoneNumber = prefs.getString(KEY_ACTIVE_PHONE_NUMBER, "") ?: ""
+        val callerName = prefs.getString(KEY_ACTIVE_CALLER_NAME, null)
+        val packageName = prefs.getString(KEY_ACTIVE_PACKAGE_NAME, null)
+        return RawCallData(rawPhoneNumber, direction, callerName, packageName)
+    }
+
+    /**
+     * Clears the active call session cache.
+     */
+    fun clearActiveSession() {
+        context.getSharedPreferences(PREFS_CACHE, Context.MODE_PRIVATE).edit {
+            remove(KEY_ACTIVE_PHONE_NUMBER)
+            remove(KEY_ACTIVE_DIRECTION)
+            remove(KEY_ACTIVE_CALLER_NAME)
+            remove(KEY_ACTIVE_PACKAGE_NAME)
+        }
     }
 
     /**

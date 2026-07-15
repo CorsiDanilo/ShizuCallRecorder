@@ -17,6 +17,7 @@ import com.kitsumed.shizucallrecorder.services.RecordingDecisionEngine
 import com.kitsumed.shizucallrecorder.services.recording.RecordingForegroundService
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import com.kitsumed.shizucallrecorder.utils.PhoneNumberManager
+import rikka.shizuku.Shizuku
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -80,6 +81,9 @@ class PhoneStateSessionManager private constructor(context: Context) {
                     // Save the direction temporarily to survive possible process death while waiting for the user to answer the call.
                     if (value != null) {
                         temporaryCache.save(value.direction)
+                        temporaryCache.saveActiveSession(value)
+                    } else {
+                        temporaryCache.clearActiveSession()
                     }
 
                     field = value
@@ -96,6 +100,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
                     // it's the same call session, we want to allow updating the phone number. The only exception is if we already sent a start intent to
                     // the RecordingForegroundService, in that case we want to keep the original metadata for consistency between the two, even if it's anonymous.
                     field = value
+                    temporaryCache.saveActiveSession(value)
                     AppLogger.d( "Updated ongoing session call metadata with late number discovery: ${value.rawPhoneNumber} for direction ${value.direction}.")
                 } else
                 {
@@ -134,6 +139,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
     private val session: CallSessionState = CallSessionState()
     private val appContext: Context = context.applicationContext
     private val preferences = AppPreferences(appContext)
+    private val telephonyManager = appContext.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
     private val temporaryCache = PhoneStateTemporaryCache(appContext)
 
@@ -145,11 +151,62 @@ class PhoneStateSessionManager private constructor(context: Context) {
     private var sessionJob: Job? = null
 
 
+    private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
+        try {
+            if (telephonyManager.callState == TelephonyManager.CALL_STATE_OFFHOOK) {
+                val cachedSession = temporaryCache.restoreActiveSession()
+                if (cachedSession != null && !RecordingForegroundService.isRunning) {
+                    AppLogger.i("Shizuku binder received while call is active but recording is not running. Resuming recording...")
+                    managerScope.launch {
+                        RecordingDecisionEngine.getInstance(appContext).executeDecisionPipeline(cachedSession)
+                    }
+                }
+            } else {
+                temporaryCache.clearActiveSession()
+            }
+        } catch (e: Exception) {
+            AppLogger.e("Error checking call state or restoring active session on binder reconnect", e)
+        }
+    }
+
     init {
         AppLogger.d( "PhoneStateSessionManager initialised")
+        restoreSessionIfCallActive()
+        Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
+    }
+
+    private fun restoreSessionIfCallActive() {
+        try {
+            val currentCallState = telephonyManager.callState
+            if (currentCallState == TelephonyManager.CALL_STATE_OFFHOOK) {
+                val cachedSession = temporaryCache.restoreActiveSession()
+                if (cachedSession != null) {
+                    AppLogger.i("Process restarted during active call. Restoring call session for: ${cachedSession.rawPhoneNumber}")
+                    session.currentMetadata = cachedSession
+                }
+            } else {
+                temporaryCache.clearActiveSession()
+            }
+        } catch (e: Exception) {
+            AppLogger.e("Failed to check call state or restore cached session", e)
+        }
     }
 
     // Public API
+
+    /**
+     * Returns the current raw call data if a session is active.
+     */
+    fun getActiveSessionMetadata(): RawCallData? {
+        return if (session.isSessionActive) session.currentMetadata else null
+    }
+
+    /**
+     * Resets the flag indicating that the start intent was sent.
+     */
+    fun resetStartIntentSentFlag() {
+        session.wasRecordingServiceStartIntentSend = false
+    }
 
     /**
      * Handles incoming telephony state changes to manage the recording session lifecycle.

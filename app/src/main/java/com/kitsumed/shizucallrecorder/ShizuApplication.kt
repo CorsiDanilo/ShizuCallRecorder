@@ -13,6 +13,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionOrchestrator
+import com.kitsumed.shizucallrecorder.services.callDetection.phoneState.PhoneStateSessionManager
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import com.kitsumed.shizucallrecorder.workers.DailyCleanupWorker
 import java.util.concurrent.TimeUnit
@@ -26,6 +27,8 @@ class ShizuApplication : Application() {
         AppLogger.init(applicationContext)
         // Sync configurations down to PackageManager mapping immediately on launch
         CallDetectionOrchestrator(applicationContext).syncComponents()
+        // Proactively initialize PhoneStateSessionManager to handle binder lifecycle
+        PhoneStateSessionManager.getInstance(applicationContext)
 
         // Enqueue daily cleanup worker
         val cleanupWorkRequest = PeriodicWorkRequestBuilder<DailyCleanupWorker>(1, TimeUnit.DAYS).build()

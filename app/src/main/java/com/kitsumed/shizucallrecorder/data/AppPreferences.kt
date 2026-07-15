@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import com.kitsumed.shizucallrecorder.BuildConfig
 import com.kitsumed.shizucallrecorder.R
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyAudioCodec
 import com.kitsumed.shizucallrecorder.integrations.scrcpy.ScrcpyAudioSource
@@ -342,7 +343,7 @@ class AppPreferences(context: Context) {
     // -------- Debug --------
 
     /** Checks if logging features are enabled. */
-    fun isLoggingEnabled() = getBoolean(Key.LOGGING_ENABLED, DefaultsValue.LOGGING_ENABLED)
+    fun isLoggingEnabled() = getBoolean(Key.LOGGING_ENABLED, BuildConfig.DEBUG || DefaultsValue.LOGGING_ENABLED)
 
     /** Sets whether logging features are enabled. */
     fun setLoggingEnabled(enabled: Boolean) = setBoolean(Key.LOGGING_ENABLED, enabled)

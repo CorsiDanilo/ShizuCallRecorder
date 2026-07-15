@@ -24,6 +24,11 @@ import com.kitsumed.shizucallrecorder.utils.AppLogger
  */
 class DeleteDialogConfirmationActivity : AppCompatActivity() {
 
+    companion object {
+        /** Intent extra key for the notification ID to dismiss after deletion. */
+        const val EXTRA_NOTIFICATION_ID = "com.kitsumed.shizucallrecorder.NOTIFICATION_ID"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // We do NOT call setContent() here, and we define a transparent theme (dialog) in the manifest for this activity.
@@ -42,9 +47,11 @@ class DeleteDialogConfirmationActivity : AppCompatActivity() {
                     val deleted = DocumentFile.fromSingleUri(this, fileUri)?.delete() == true
                     if (deleted) {
                         Toast.makeText(this, getString(R.string.general_deleted), Toast.LENGTH_SHORT).show()
-                        // Remove the notifications from the notification tray since file no longer exists
-                        val manager = getSystemService(android.app.NotificationManager::class.java)
-                        manager.cancel(RecordingNotificationHelper.POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ID)
+                        // Remove the specific notification from the tray using the ID passed in the intent.
+                        val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
+                        if (notificationId != -1) {
+                            getSystemService(android.app.NotificationManager::class.java).cancel(notificationId)
+                        }
                     }
                 } catch (e: Exception) {
                     AppLogger.e( "Failed to delete file: $fileUri", e)

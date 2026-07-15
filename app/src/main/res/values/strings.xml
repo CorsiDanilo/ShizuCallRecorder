@@ -313,6 +313,8 @@
     <string name="recording_saved_message">Your recording has been saved.</string>
     <string name="post_recording_notification_title">Recording Management</string>
     <string name="post_recording_notification_unknown_caller">Anonymous or Unknown caller</string>
+    <string name="post_recording_failed_notification_title">Recording Failed</string>
+    <string name="post_recording_failed_notification_body">The recording for %1$s could not be saved. The audio file is empty or was not created.</string>
     <!-- Recording Service: DeleteDialogConfirmationActivity -->
     <string name="delete_recording_confirmation_title">Delete Recording</string>
     <string name="delete_recording_confirmation_message">Are you sure you want to delete this recording? This action cannot be undone.</string>
