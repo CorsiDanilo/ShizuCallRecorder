@@ -153,6 +153,9 @@ class PhoneStateSessionManager private constructor(context: Context) {
 
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
         try {
+            if (preferences.getCallDetectionMode() != com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionMode.PhoneState) {
+                return@OnBinderReceivedListener
+            }
             if (telephonyManager.callState == TelephonyManager.CALL_STATE_OFFHOOK) {
                 val cachedSession = temporaryCache.restoreActiveSession()
                 if (cachedSession != null && !RecordingForegroundService.isRunning) {
@@ -176,6 +179,9 @@ class PhoneStateSessionManager private constructor(context: Context) {
     }
 
     private fun restoreSessionIfCallActive() {
+        if (preferences.getCallDetectionMode() != com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionMode.PhoneState) {
+            return
+        }
         try {
             val currentCallState = telephonyManager.callState
             if (currentCallState == TelephonyManager.CALL_STATE_OFFHOOK) {

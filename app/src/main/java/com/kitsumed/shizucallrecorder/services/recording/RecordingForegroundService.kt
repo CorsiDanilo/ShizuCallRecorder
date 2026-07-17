@@ -119,12 +119,9 @@ class RecordingForegroundService : Service() {
             }
         }
 
-    /** True while a recording session object is present (initializing, active, or pending teardown).
-     *  Intentionally includes [RecordingServiceState.Starting] to prevent duplicate start intents
-     *  that arrive before the first coroutine promotes the state to [RecordingServiceState.Active]
-     *  from each launching their own parallel pipeline. */
+    /** True while a recording session object is present (initializing, active, or pending teardown). */
     private val hasSession: Boolean
-        get() = currentState is RecordingServiceState.Active || currentState is RecordingServiceState.Starting
+        get() = currentState is RecordingServiceState.Active
 
     /** True only if the pipeline is actively reading and capturing audio. */
     private val isCurrentlyRecording: Boolean
@@ -191,7 +188,7 @@ class RecordingForegroundService : Service() {
 
         when (action) {
             ACTION_START_RECORDING, ACTION_MANUAL_START -> {
-                if (hasSession || isCurrentlyRecording) {
+                if (hasSession || isCurrentlyRecording || currentState is RecordingServiceState.Starting) {
                     AppLogger.w( "Start request ignored. A session is already on-going.")
                     return START_NOT_STICKY
                 }
@@ -308,8 +305,12 @@ class RecordingForegroundService : Service() {
         }
 
         // Clear active session cache if the call has ended
-        val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        if (telephonyManager.callState == TelephonyManager.CALL_STATE_IDLE) {
+        if (appPreferences.getCallDetectionMode() == com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionMode.PhoneState) {
+            val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            if (telephonyManager.callState == TelephonyManager.CALL_STATE_IDLE) {
+                PhoneStateTemporaryCache(this).clearActiveSession()
+            }
+        } else {
             PhoneStateTemporaryCache(this).clearActiveSession()
         }
 
