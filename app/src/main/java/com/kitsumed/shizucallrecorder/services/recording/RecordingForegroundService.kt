@@ -119,9 +119,12 @@ class RecordingForegroundService : Service() {
             }
         }
 
-    /** True while a recording session object is present (initializing, active, or pending teardown). */
+    /** True while a recording session object is present (initializing, active, or pending teardown).
+     *  Intentionally includes [RecordingServiceState.Starting] to prevent duplicate start intents
+     *  that arrive before the first coroutine promotes the state to [RecordingServiceState.Active]
+     *  from each launching their own parallel pipeline. */
     private val hasSession: Boolean
-        get() = currentState is RecordingServiceState.Active
+        get() = currentState is RecordingServiceState.Active || currentState is RecordingServiceState.Starting
 
     /** True only if the pipeline is actively reading and capturing audio. */
     private val isCurrentlyRecording: Boolean

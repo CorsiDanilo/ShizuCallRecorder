@@ -361,9 +361,10 @@ class ShizukuConnectionManager(
         if (hasPermission()) {
             bindServiceInternal()
         } else {
-            AppLogger.w( "Cannot bind yet, missing permission, requesting Shizuku permission...")
-            Shizuku.addRequestPermissionResultListener(permissionListener)
-            Shizuku.requestPermission(PERMISSION_REQUEST_CODE)
+            AppLogger.w("Cannot bind: Shizuku permission not granted")
+            if (continuation.isActive) {
+                continuation.resumeWithException(SecurityException("Shizuku permission not granted"))
+            }
         }
 
         // Cleanup when the coroutine is completed or canceled
