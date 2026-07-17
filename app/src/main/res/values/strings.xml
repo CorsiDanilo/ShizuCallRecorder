@@ -355,6 +355,7 @@
     <string name="recordings_action_share">Share</string>
     <string name="recordings_action_cancel">Cancel</string>
     <string name="recordings_action_confirm">Confirm</string>
+    <string name="recordings_action_select_all">Select all</string>
     <string name="recordings_selected_count">%d selected</string>
     <string name="recordings_direction_incoming">Incoming</string>
     <string name="recordings_direction_outgoing">Outgoing</string>

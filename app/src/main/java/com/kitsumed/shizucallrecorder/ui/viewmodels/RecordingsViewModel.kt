@@ -196,6 +196,14 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /** Selects all currently filtered recordings. */
+    fun selectAll() {
+        _uiState.update { state ->
+            val allFilteredUris = filteredRecordings.map { it.uri }.toSet()
+            state.copy(selectedUris = allFilteredUris)
+        }
+    }
+
     /** Clears all selections, exiting multi-selection mode. */
     fun clearSelection() {
         _uiState.update { it.copy(selectedUris = emptySet()) }

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -162,6 +163,12 @@ fun RecordingsScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = { viewModel.selectAll() }) {
+                            Icon(
+                                Icons.Default.SelectAll,
+                                contentDescription = stringResource(R.string.recordings_action_select_all)
+                            )
+                        }
                         IconButton(onClick = {
                             shareRecordings(context, uiState.selectedUris.toList())
                         }) {
