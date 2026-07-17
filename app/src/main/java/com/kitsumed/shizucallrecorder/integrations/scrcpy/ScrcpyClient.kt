@@ -225,8 +225,8 @@ class ScrcpyClient(
                 // Read exactly payloadSize bytes into a fresh array.
                 val payloadBytes = ByteArray(header.payloadSize)
                 inputStream.readFully(payloadBytes)
-
-                AppLogger.v( "Packet: pts=${header.pts} config=${header.isConfig} keyFrame=${header.isKeyFrame} media=${header.isMedia} size=${header.payloadSize}")
+                // UNCOMMENT WHEN DEBUGGING ScrcpyClient decoder or updating scrcpy-server version.
+                //AppLogger.v( "Packet: pts=${header.pts} config=${header.isConfig} keyFrame=${header.isKeyFrame} media=${header.isMedia} size=${header.payloadSize}")
 
                 listener.onAudioPacket(
                     AudioPacket(
