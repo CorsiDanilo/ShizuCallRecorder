@@ -43,7 +43,7 @@ You can also look for existing discussions or issues on this project to see if o
 While we do not and will not offer pre-defined templates for specific apps, we provide the ability to customize your filename format by including multiple details like the hour, contact name, or, when available, the name of the application that made the call.
 
 <details>
-<summary><b>See the list of templates reported to work by users</b></summary>
+<summary><b>See the list of templates reported to work on native phone applications by users</b></summary>
 
 | Target OEM / OS Version | Template Type | Required Storage Path | Template Format | Filename Example |
 | :--- | :--- | :--- | :--- | :--- |
