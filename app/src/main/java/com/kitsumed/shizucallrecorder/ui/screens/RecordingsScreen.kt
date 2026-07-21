@@ -43,6 +43,8 @@ import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -69,6 +71,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -197,127 +200,137 @@ fun RecordingsScreen(
             }
         }
     ) { innerPadding ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadRecordings() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Search bar — always visible below the TopAppBar
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = { Text(stringResource(R.string.recordings_search_placeholder)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (uiState.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = null)
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Search bar — always visible below the TopAppBar
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
+                    placeholder = { Text(stringResource(R.string.recordings_search_placeholder)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = null)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    singleLine = true
+                )
+
+                when {
+                    uiState.noFolderConfigured -> {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState()),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.FolderOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    stringResource(R.string.recordings_no_folder_title),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    stringResource(R.string.recordings_no_folder_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Card(
+                                    onClick = onNavigateBack,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                                    )
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.recordings_go_to_settings),
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
                         }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                singleLine = true
-            )
 
-            when {
-                uiState.isLoading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                uiState.noFolderConfigured -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                    recordings.isEmpty() -> {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState()),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                Icons.Default.FolderOff,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                stringResource(R.string.recordings_no_folder_title),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                stringResource(R.string.recordings_no_folder_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Card(
-                                onClick = onNavigateBack,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                Icon(
+                                    Icons.Default.MicOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                                 Text(
-                                    text = stringResource(R.string.recordings_go_to_settings),
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    stringResource(R.string.recordings_empty_title),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    stringResource(R.string.recordings_empty_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
-                }
 
-                recordings.isEmpty() -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.MicOff,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                stringResource(R.string.recordings_empty_title),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                stringResource(R.string.recordings_empty_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(recordings, key = { it.uri.toString() }) { recording ->
-                            SwipeableRecordingItem(
-                                recording = recording,
-                                isSelected = recording.uri in uiState.selectedUris,
-                                isSelectionMode = isSelectionMode,
-                                onClick = {
-                                    if (isSelectionMode) {
-                                        viewModel.toggleSelection(recording.uri)
-                                    } else {
-                                        playerRecording = recording
-                                    }
-                                },
-                                onLongClick = { viewModel.toggleSelection(recording.uri) },
-                                onSwipeDelete = { recordingToDelete = recording },
-                                onSwipeRename = {
-                                    recordingToRename = recording
-                                    renameText = recording.name
-                                },
-                                onMenuDelete = { recordingToDelete = recording },
-                                onMenuRename = {
-                                    recordingToRename = recording
-                                    renameText = recording.name
-                                },
-                                onMenuShare = { shareRecording(context, recording.uri) }
-                            )
-                            HorizontalDivider()
+                    else -> {
+                        LazyColumn(modifier = Modifier.weight(1f)) {
+                            items(recordings, key = { it.uri.toString() }) { recording ->
+                                SwipeableRecordingItem(
+                                    recording = recording,
+                                    isSelected = recording.uri in uiState.selectedUris,
+                                    isSelectionMode = isSelectionMode,
+                                    onClick = {
+                                        if (isSelectionMode) {
+                                            viewModel.toggleSelection(recording.uri)
+                                        } else {
+                                            playerRecording = recording
+                                        }
+                                    },
+                                    onLongClick = { viewModel.toggleSelection(recording.uri) },
+                                    onSwipeDelete = { recordingToDelete = recording },
+                                    onSwipeRename = {
+                                        recordingToRename = recording
+                                        renameText = recording.name
+                                    },
+                                    onMenuDelete = { recordingToDelete = recording },
+                                    onMenuRename = {
+                                        recordingToRename = recording
+                                        renameText = recording.name
+                                    },
+                                    onMenuShare = { shareRecording(context, recording.uri) }
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }

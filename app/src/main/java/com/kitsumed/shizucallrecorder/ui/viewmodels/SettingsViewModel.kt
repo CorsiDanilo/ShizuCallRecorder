@@ -78,6 +78,7 @@ interface SettingsActions {
     fun setRecordThirdPartyCalls(enabled: Boolean)
     fun setAutoDeleteDays(days: Int)
     fun setPostRecordingFileNotification(enabled: Boolean)
+    fun setKeepScreenOnDuringCalls(enabled: Boolean)
 }
 
 /**
@@ -173,6 +174,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      */
     override fun setVibrationEnabled(enabled: Boolean) {
         preferences.setVibrationEnabled(enabled)
+        refresh()
+    }
+
+    /** Enables or disables keeping the screen on during active call recording. */
+    override fun setKeepScreenOnDuringCalls(enabled: Boolean) {
+        preferences.setKeepScreenOnDuringCallsEnabled(enabled)
         refresh()
     }
 

@@ -106,6 +106,7 @@ class RecordingForegroundService : Service() {
     // ── Recording session state ────────────────────────────────────────────────────────
 
     private var wakeLock: PowerManager.WakeLock? = null
+    private var screenWakeLock: PowerManager.WakeLock? = null
 
     /** The current state of the service. */
     @Volatile
@@ -142,9 +143,13 @@ class RecordingForegroundService : Service() {
             AppLogger.w( "Received callback from ShizukuConnectionManager: Shizuku disconnected unexpectedly. Stopping recording service...")
             // Handle cleanup if the service dies
             if (hasSession) {
-                notificationHelper.showErrorNotification(getString(R.string.recording_error_shizuku_disconnected_unexpectedly))
+                val meta = currentState.metadata
                 PhoneStateSessionManager.getInstance(this).resetStartIntentSentFlag()
                 stopRecordingSessionAndService(false)
+                notificationHelper.showErrorNotificationWithResume(
+                    getString(R.string.recording_error_shizuku_disconnected_with_resume),
+                    meta
+                )
             }
         }
 
@@ -340,6 +345,20 @@ class RecordingForegroundService : Service() {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ShizuCallRecorder:RecordingWakeLock").apply {
                 acquire(10 * 60 * 1000L) // 10 minutes timeout
             }
+            if (appPreferences.isKeepScreenOnDuringCallsEnabled()) {
+                runCatching {
+                    @Suppress("DEPRECATION")
+                    screenWakeLock = powerManager.newWakeLock(
+                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                        "ShizuCallRecorder:ScreenKeepOnWakeLock"
+                    ).apply {
+                        acquire(10 * 60 * 1000L)
+                    }
+                    AppLogger.d("Acquired screen wake lock for call recording.")
+                }.onFailure { e ->
+                    AppLogger.w("Failed to acquire screen wake lock", e)
+                }
+            }
             currentState = RecordingServiceState.Active(activeSession, false, metadata)
             AppLogger.i( "Recording pipeline started successfully")
         } catch (e: PipelineInitializationException) {
@@ -358,6 +377,16 @@ class RecordingForegroundService : Service() {
      * @param discard If true, cancels the recording and deletes the partial file.
      */
     private fun stopRecordingSessionAndService(discard: Boolean = false) {
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+        }
+        wakeLock = null
+
+        if (screenWakeLock?.isHeld == true) {
+            runCatching { screenWakeLock?.release() }
+        }
+        screenWakeLock = null
+
         val activeSession = (currentState as? RecordingServiceState.Active)?.engine
         if (activeSession == null) {
             AppLogger.d( "No active session, exiting standby state, removing foreground notification and stopping service.")
@@ -365,11 +394,6 @@ class RecordingForegroundService : Service() {
             stopSelf() // Stop the service since the session is over
             return
         }
-
-        if (wakeLock?.isHeld == true) {
-            wakeLock?.release()
-        }
-        wakeLock = null
         
         if (discard) {
             AppLogger.i("Discarding active recording session...")

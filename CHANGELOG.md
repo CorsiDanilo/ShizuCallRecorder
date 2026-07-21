@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-07-21
+### Added
+- **Interactive Resume Action**: Added a "Resume" button to error notifications when Shizuku disconnects mid-call, saving Part 1 and resuming in a separate file (Part 2).
+- **Keep Screen On Option**: Added setting to keep display awake during active call recording sessions (`keep_screen_on_during_calls`).
+- **Pull-To-Refresh**: Added pull-to-refresh swipe gesture support on the Recordings Screen.
+- **Localization**: Full internationalization with English base strings and Italian translations (`values-it`).
+
 ## [1.3.0] - 2026-07-15
 ### Added
 - **Recordings Management Screen**: A new dedicated screen to browse, play, rename, share, and delete audio recordings directly from the app.

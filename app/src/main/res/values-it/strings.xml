@@ -119,4 +119,9 @@
     <string name="permission_manage_ongoing_calls_label">Gestisci le Chiamate in Corso</string>
     <string name="permission_manage_ongoing_calls_description">Permessi AppOps concessi automaticamente tramite Shizuku. Richiesti per individuare chiamate con InCallSrrvice.</string>
     <string name="settings_shizuku_keep_alive_desc">Non inviare l\'intento di stop</string>
+
+    <string name="recording_action_resume">Riprendi</string>
+    <string name="recording_error_shizuku_disconnected_with_resume">Shizuku si è disconnesso. Tocca \'Riprendi\' per riavviare la registrazione.</string>
+    <string name="pref_keep_screen_on_title">Schermo sempre acceso in chiamata</string>
+    <string name="pref_keep_screen_on_desc">Mantiene lo schermo acceso durante le registrazioni attive</string>
 </resources>

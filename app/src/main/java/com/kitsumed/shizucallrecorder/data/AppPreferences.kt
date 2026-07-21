@@ -50,6 +50,7 @@ class AppPreferences(context: Context) {
         const val POST_RECORDING_FILE_ACTIONS_NOTIFICATION_ENABLED = false
         const val AUTO_RECORD_INCOMING = false
         const val AUTO_RECORD_OUTGOING = false
+        const val KEEP_SCREEN_ON_DURING_CALLS = false
 
         
         // --- Filters & Contacts ---
@@ -126,7 +127,8 @@ class AppPreferences(context: Context) {
         SHIZUKU_KEEP_ALIVE("shizuku_keep_alive"),
         SHIZUKU_AUTH_KEY("shizuku_auth_key"),
         CALL_DETECTION_MODE("call_detection_mode"),
-        RECORD_THIRD_PARTY_CALLS("record_third_party_calls");
+        RECORD_THIRD_PARTY_CALLS("record_third_party_calls"),
+        KEEP_SCREEN_ON_DURING_CALLS("keep_screen_on_during_calls");
     }
 
     // -------- Nested enums
@@ -439,4 +441,10 @@ class AppPreferences(context: Context) {
 
     /** Sets the Shizuku auth key. */
     fun setShizukuAuthKey(key: String) = setString(Key.SHIZUKU_AUTH_KEY, key)
+
+    /** Checks if the screen should be forced to stay on during active call recording. */
+    fun isKeepScreenOnDuringCallsEnabled() = getBoolean(Key.KEEP_SCREEN_ON_DURING_CALLS, DefaultsValue.KEEP_SCREEN_ON_DURING_CALLS)
+
+    /** Sets whether the screen should be forced to stay on during active call recording. */
+    fun setKeepScreenOnDuringCallsEnabled(enabled: Boolean) = setBoolean(Key.KEEP_SCREEN_ON_DURING_CALLS, enabled)
 }

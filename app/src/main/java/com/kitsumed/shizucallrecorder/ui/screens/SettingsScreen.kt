@@ -527,6 +527,7 @@ private fun RecordingSection(
     val fileNameFormat = remember(updateTrigger) { preferences.getFileNameTemplate() }
     val postRecordingFileNotifications = remember(updateTrigger) { preferences.isPostRecordingFileActionsNotificationEnabled() }
     val isVibrationEnabled = remember(updateTrigger) { preferences.isVibrationEnabled() }
+    val keepScreenOnDuringCalls = remember(updateTrigger) { preferences.isKeepScreenOnDuringCallsEnabled() }
     val autoRecordIncoming = remember(updateTrigger) { preferences.isAutoRecordIncomingEnabled() }
     val autoRecordOutgoing = remember(updateTrigger) { preferences.isAutoRecordOutgoingEnabled() }
     val ignoreAnonymousIncoming = remember(updateTrigger) { preferences.isIgnoreAnonymousIncomingEnabled() }
@@ -671,6 +672,13 @@ private fun RecordingSection(
             label           = stringResource(R.string.settings_vibration_enabled),
             checked         = isVibrationEnabled,
             onCheckedChange = { actions.setVibrationEnabled(it) }
+        )
+
+        ToggleListItem(
+            label           = stringResource(R.string.pref_keep_screen_on_title),
+            description     = stringResource(R.string.pref_keep_screen_on_desc),
+            checked         = keepScreenOnDuringCalls,
+            onCheckedChange = { actions.setKeepScreenOnDuringCalls(it) }
         )
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
@@ -1315,6 +1323,7 @@ private fun SettingsScreenPreview() {
             override fun setRecordThirdPartyCalls(enabled: Boolean) {}
             override fun setAutoDeleteDays(days: Int) {}
             override fun setPostRecordingFileNotification(enabled: Boolean) {}
+            override fun setKeepScreenOnDuringCalls(enabled: Boolean) {}
         }
         // File name template selection dialog
         //FileNameFormatDialog(AppPreferences.DefaultsValue.FILE_NAME_TEMPLATE, {},{})

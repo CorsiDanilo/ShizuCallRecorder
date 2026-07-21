@@ -368,6 +368,44 @@ class RecordingNotificationHelper(private val context: Context) {
     }
 
     /**
+     * Posts an error notification with an action button to resume recording if Shizuku or recording failed.
+     *
+     * @param message Error description to show in notification body.
+     * @param metadata Metadata of the interrupted call session.
+     */
+    fun showErrorNotificationWithResume(message: String, metadata: EnrichedCallData?) {
+        val resumeIntent = Intent(context, RecordingActionReceiver::class.java).apply {
+            action = RecordingActionReceiver.ACTION_RESUME_AFTER_ERROR
+            if (metadata != null) {
+                putExtra(EnrichedCallData.EXTRA_METADATA, metadata)
+            }
+        }
+        val resumePendingIntent = PendingIntent.getBroadcast(
+            context,
+            2001,
+            resumeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID_ERROR)
+            .setSmallIcon(R.drawable.ic_outline_error)
+            .setContentTitle(context.getString(R.string.recording_error_title))
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setAutoCancel(true)
+            .addAction(
+                R.drawable.ic_mic,
+                context.getString(R.string.recording_action_resume),
+                resumePendingIntent
+            )
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
+            .build()
+
+        context.getSystemService(NotificationManager::class.java).notify(ERROR_NOTIFICATION_ID, notification)
+        vibrate(VibrationEffect.createWaveform(longArrayOf(0, 100, 800), intArrayOf(0, 46, 184), -1))
+    }
+
+    /**
      * Triggers a vibration if enabled in settings.
      */
     fun vibrate(effect: VibrationEffect) {

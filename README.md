@@ -18,6 +18,9 @@ It can also be seen as an on-device wrapper for [scrcpy-server](https://github.c
 
 - Records **both sides of phone calls** (incoming and outgoing)
     - Should work even when using Bluetooth or a remote headset
+- **Dedicated Recordings Screen**: In-app audio player, real-time search, swipe gestures, bulk selection, and pull-to-refresh.
+- **Resume Interrupted Recordings**: Interactive error notification button to resume recording as a separate file if Shizuku disconnects mid-call.
+- **Keep Screen On**: Option to force the screen to stay awake while recording active calls.
 - **Security** toggles to **manage Shizuku on/off state**
     - An attempt to reduce the potential attack surface introduced by Shizuku
     - Helps with apps that detect / yells at you when USB Debugging or Shizuku is enabled
@@ -98,11 +101,3 @@ In some cases, certain features, like automatic call recording, may not be legal
 > Because deterministic behavior of the application cannot be guaranteed, it is your responsibility to:
 > 1. Ensure the recording behavior and your application settings aligns with your intent and the specific requirements in your jurisdiction.
 > 2. **Monitor the app's behavior** on your specific device. If you observe any behavior that does not comply with your local laws, you **must immediately cease any activity that constitutes a legal infraction** (For example, hanging up the call, deleting the audio files, etc).
-
-
-## Star History
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=kitsumed/ShizuCallRecorder&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=kitsumed/ShizuCallRecorder&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=kitsumed/ShizuCallRecorder&type=date&legend=top-left" />
- </picture>
