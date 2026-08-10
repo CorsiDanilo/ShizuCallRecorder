@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-08-10
+### Added
+- **Automatic Shizuku Recovery**: Recording now waits for Shizuku to reconnect and automatically starts a new recording segment after a temporary binder disconnection.
+- **Recovery Status Notification**: The foreground notification now clearly indicates when the service is waiting to reconnect to Shizuku.
+
+### Changed
+- **Smoother Interruption Handling**: Recoverable Shizuku disconnections no longer stop the recording service or require a manual "Resume" action.
+- **Notification Management**: Transient recovery errors no longer create an additional error notification while the service is retrying.
+- **Recording Lifecycle State**: Added an explicit recovery state to keep call metadata and service visibility consistent during reconnection.
+
+### Fixed
+- **Screen Lock/Unlock Interruptions**: Recording can resume automatically when Shizuku becomes available again after the device screen is locked or unlocked.
+- **Partial Session Cleanup**: Interrupted audio sessions are finalized before recovery so the resumed recording starts cleanly in a separate segment.
+
 ## [1.4.0] - 2026-07-21
 ### Added
 - **Interactive Resume Action**: Added a "Resume" button to error notifications when Shizuku disconnects mid-call, saving Part 1 and resuming in a separate file (Part 2).
