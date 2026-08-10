@@ -255,6 +255,8 @@ aboutLibraries {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
+
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.documentfile)

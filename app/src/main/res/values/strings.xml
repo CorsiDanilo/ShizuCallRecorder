@@ -320,6 +320,7 @@
     <string name="recording_notification_title">Recording in progress</string>
     <string name="recording_notification_press_to_start">Press to start recording</string>
     <string name="recording_notification_waiting_shizuku">Waiting for Shizuku Server to start...</string>
+    <string name="recording_notification_reconnecting_shizuku">Shizuku disconnected. Waiting to resume recording...</string>
     <string name="recording_notification_press_to_pause">Press to pause recording</string>
     <string name="recording_notification_press_to_resume">Press to resume recording</string>
     <string name="recording_toast_standby">Entering standby for %1$s call.</string>

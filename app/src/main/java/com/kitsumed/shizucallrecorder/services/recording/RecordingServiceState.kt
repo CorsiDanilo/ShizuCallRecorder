@@ -24,6 +24,10 @@ sealed class RecordingServiceState {
     val isRecordingActive: Boolean
         get() = this is Active
 
+    /** True while the service is waiting for Shizuku to become available again. */
+    val isRecovering: Boolean
+        get() = this is Recovering
+
     /** True if the recording service is actively recording a call and the recording is currently paused. */
     val isRecordingPaused: Boolean
         get() = (this as? Active)?.isPaused == true
@@ -38,6 +42,9 @@ sealed class RecordingServiceState {
      * Initial transient state when the service has received a start command and is setting things up.
      */
     data class Starting(override val metadata: EnrichedCallData) : RecordingServiceState()
+
+    /** Represents a recording interrupted by Shizuku, while automatic recovery is in progress. */
+    data class Recovering(override val metadata: EnrichedCallData) : RecordingServiceState()
 
     /**
      * Represents the state when the recording service is actively recording a call. Contains the current recording engine and metadata.

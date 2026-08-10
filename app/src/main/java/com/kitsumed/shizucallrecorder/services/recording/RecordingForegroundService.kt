@@ -29,11 +29,14 @@ import com.kitsumed.shizucallrecorder.services.callDetection.phoneState.PhoneSta
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -93,6 +96,9 @@ class RecordingForegroundService : Service() {
     /** Scope for service lifecycle operations (binding, etc.) */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    /** Job that waits for Shizuku to return after an unexpected binder disconnect. */
+    private var recoveryJob: Job? = null
+
     // ── Recording session state ────────────────────────────────────────────────────────
 
     private var wakeLock: PowerManager.WakeLock? = null
@@ -122,23 +128,29 @@ class RecordingForegroundService : Service() {
                 if (oldState != newState) {
                     updateNotification()
                     notificationHelper.handleStateChangeToasts(oldState, newState)
-                    overlayController.showOverlay(newState)
+                    if (newState.isRecovering) {
+                        overlayController.hideOverlay()
+                    } else {
+                        overlayController.showOverlay(newState)
+                    }
                     oldState = newState
                 }
             }
         }
 
         shizukuManager = ShizukuConnectionManager(this) {
-            AppLogger.w( "Received callback from ShizukuConnectionManager: Shizuku disconnected unexpectedly. Stopping recording service...")
-            // Handle cleanup if the service dies during recording
-            if (_serviceState.value.isRecordingActive) {
-                val meta = _serviceState.value.metadata
-                PhoneStateSessionManager.getInstance(this).resetStartIntentSentFlag()
-                stopRecordingSessionAndService(false)
-                notificationHelper.showErrorNotificationWithResume(
-                    getString(R.string.recording_error_shizuku_disconnected_with_resume),
-                    meta
-                )
+            AppLogger.w("Received callback from ShizukuConnectionManager: Shizuku disconnected unexpectedly. Starting automatic recovery...")
+            when (val state = _serviceState.value) {
+                is RecordingServiceState.Active -> {
+                    PhoneStateSessionManager.getInstance(this).resetStartIntentSentFlag()
+                    prepareActiveSessionForRecovery()
+                    startAutomaticRecovery(state.metadata)
+                }
+                is RecordingServiceState.Starting -> {
+                    _serviceState.update { RecordingServiceState.Recovering(state.metadata) }
+                    startAutomaticRecovery(state.metadata)
+                }
+                else -> Unit
             }
         }
 
@@ -183,7 +195,7 @@ class RecordingForegroundService : Service() {
 
         when (action) {
             ACTION_START_RECORDING, ACTION_MANUAL_START -> {
-                if (state.isRecordingActive || state.isStarting) {
+                if (state.isRecordingActive || state.isStarting || state.isRecovering) {
                     AppLogger.w( "Start request ignored. A session is already on-going.")
                     return START_NOT_STICKY
                 }
@@ -294,6 +306,80 @@ class RecordingForegroundService : Service() {
         }
     }
 
+    /**
+     * Releases the interrupted audio pipeline without publishing a post-call notification.
+     * The call is still active, so the service remains alive in [RecordingServiceState.Recovering].
+     */
+    private fun prepareActiveSessionForRecovery() {
+        releaseWakeLocks()
+
+        val activeSession = (_serviceState.value as? RecordingServiceState.Active)?.engine
+        if (activeSession != null) {
+            AppLogger.w("Releasing interrupted recording session while waiting for Shizuku recovery.")
+            activeSession.release(shellService)
+        }
+        shellService = null
+
+        _serviceState.update { state ->
+            if (state is RecordingServiceState.Active) {
+                RecordingServiceState.Recovering(state.metadata)
+            } else {
+                state
+            }
+        }
+    }
+
+    /**
+     * Keeps the foreground service alive and retries the Shizuku binding until the call ends
+     * or a new recording pipeline starts successfully.
+     */
+    private fun startAutomaticRecovery(metadata: EnrichedCallData) {
+        if (recoveryJob?.isActive == true) return
+
+        recoveryJob = serviceScope.launch {
+            var attempt = 0
+
+            while (isActive && _serviceState.value.isRecovering) {
+                try {
+                    AppLogger.d("Waiting for Shizuku to become available again (attempt ${attempt + 1}).")
+                    val available = ShizukuConnectionManager.waitForServer(
+                        timeoutMillis = 5_000L,
+                        pollIntervalMillis = 250L
+                    )
+
+                    if (!available) {
+                        attempt++
+                        delay((attempt.coerceAtMost(5) * 1_000L))
+                        continue
+                    }
+
+                    val service = shizukuManager.getShellService()
+                    shellService = service
+                    _serviceState.update { state ->
+                        if (state.isRecovering) RecordingServiceState.Starting(metadata) else state
+                    }
+                    startNewRecordingSession(service, metadata)
+
+                    if (_serviceState.value.isRecordingActive) {
+                        notificationHelper.cancelErrorNotification()
+                        AppLogger.i("Recording automatically resumed after Shizuku recovery.")
+                        return@launch
+                    }
+                } catch (e: SecurityException) {
+                    AppLogger.e("Cannot recover recording because Shizuku permission is unavailable.", e)
+                } catch (e: Exception) {
+                    AppLogger.w("Shizuku recovery attempt failed: ${e.message}", e)
+                }
+
+                _serviceState.update { state ->
+                    if (state is RecordingServiceState.Starting) RecordingServiceState.Recovering(metadata) else state
+                }
+                attempt++
+                delay(attempt.coerceAtMost(5) * 1_000L)
+            }
+        }
+    }
+
     override fun onDestroy() {
         // Always clean up, even if the OS kills the service mid-recording.
         // This is the guaranteed last callback before the service process is cleaned up.
@@ -376,6 +462,23 @@ class RecordingForegroundService : Service() {
      * @param discard If true, cancels the recording and deletes the partial file.
      */
     private fun stopRecordingSessionAndService(discard: Boolean = false) {
+        recoveryJob?.cancel()
+        recoveryJob = null
+        releaseWakeLocks()
+
+        val activeSession = (_serviceState.value as? RecordingServiceState.Active)?.engine
+        if (activeSession == null) {
+            _serviceState.update { RecordingServiceState.Standby(null) }
+            AppLogger.d( "No active session, exiting standby/recovery state, removing foreground notification and stopping service.")
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf() // Stop the service since the session is over
+            return
+        }
+
+        stopRecordingSessionAndServiceInternal(activeSession, discard)
+    }
+
+    private fun releaseWakeLocks() {
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
@@ -385,15 +488,9 @@ class RecordingForegroundService : Service() {
             runCatching { screenWakeLock?.release() }
         }
         screenWakeLock = null
+    }
 
-        val activeSession = (_serviceState.value as? RecordingServiceState.Active)?.engine
-        if (activeSession == null) {
-            AppLogger.d( "No active session, exiting standby state, removing foreground notification and stopping service.")
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf() // Stop the service since the session is over
-            return
-        }
-        
+    private fun stopRecordingSessionAndServiceInternal(activeSession: AudioRecordingEngine, discard: Boolean) {
         if (discard) {
             AppLogger.i("Discarding active recording session...")
             activeSession.cancel(this, shellService)

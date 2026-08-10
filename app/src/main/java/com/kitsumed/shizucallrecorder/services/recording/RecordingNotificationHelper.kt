@@ -136,6 +136,13 @@ class RecordingNotificationHelper(private val context: Context) {
                 actionText = null
                 actionIntentAction = null
             }
+            is RecordingServiceState.Recovering -> {
+                titleRes = R.string.recording_standby_notification_title
+                contentRes = R.string.recording_notification_reconnecting_shizuku
+                actionIcon = null
+                actionText = null
+                actionIntentAction = null
+            }
             is RecordingServiceState.Active -> {
                 if (state.isPaused) {
                     titleRes = R.string.recording_standby_notification_title
@@ -186,7 +193,7 @@ class RecordingNotificationHelper(private val context: Context) {
             .setOnlyAlertOnce(true)
             .setColor(Green40.toArgb())
             .setColorized(state.isRecordingActive && !state.isRecordingPaused)
-            .setSilent(state.isStarting || state.isRecordingActive) // Don't do a screen-incursion if we are already recording.
+            .setSilent(state.isStarting || state.isRecovering || state.isRecordingActive) // Don't do a screen-incursion if we are already recording.
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
         if (actionText != null && actionIntentAction != null && actionIcon != null) {
@@ -374,6 +381,10 @@ class RecordingNotificationHelper(private val context: Context) {
             .build()
         context.getSystemService(NotificationManager::class.java).notify(ERROR_NOTIFICATION_ID, notification)
         vibrate(VibrationEffect.createWaveform(longArrayOf(0, 100, 800), intArrayOf(0, 46, 184), -1))
+    }
+
+    fun cancelErrorNotification() {
+        context.getSystemService(NotificationManager::class.java).cancel(ERROR_NOTIFICATION_ID)
     }
 
     /**
