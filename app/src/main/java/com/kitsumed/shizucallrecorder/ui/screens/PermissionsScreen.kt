@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,7 +58,7 @@ import com.kitsumed.shizucallrecorder.system.openGithubReportIssue
 import com.kitsumed.shizucallrecorder.ui.common.M3DropdownField
 import com.kitsumed.shizucallrecorder.ui.common.OptionItem
 import com.kitsumed.shizucallrecorder.ui.common.ToggleListItem
-import com.kitsumed.shizucallrecorder.ui.theme.ShizucallrecorderTheme
+import com.kitsumed.shizucallrecorder.ui.theme.ShizuCallRecorderTheme
 import com.kitsumed.shizucallrecorder.ui.viewmodels.PermissionsViewModel
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import kotlinx.coroutines.Dispatchers
@@ -138,9 +139,12 @@ fun PermissionsScreen(
                 val dialogMessage = stringResource(R.string.general_system_limitation_message, cleanPermissionsString)
 
                 AlertDialog(
+                    modifier = Modifier.semantics(mergeDescendants = true) {},
                     onDismissRequest = { exitProcess(0) },
-                    title = { Text(text = stringResource(R.string.general_system_limitation)) },
-                    text = { Text(text = dialogMessage) },
+                    title = {
+                        Text(text = stringResource(R.string.general_system_limitation))
+                    },
+                    text = {Text(text = dialogMessage)},
                     confirmButton = {
                         TextButton(onClick = { exitProcess(0) }) {
                             Text(text = stringResource(R.string.general_close))
@@ -150,6 +154,7 @@ fun PermissionsScreen(
                     properties = DialogProperties(
                         dismissOnBackPress = false,
                         dismissOnClickOutside = false,
+
                     ),
                     icon = { Icon(Icons.Default.Warning, contentDescription = null) }
                 )
@@ -167,7 +172,7 @@ fun PermissionsScreen(
                     Text(text = stringResource(R.string.general_close))
                 }
             },
-            icon = { Icon(Icons.Default.ErrorOutline, contentDescription = null) }
+            icon = { Icon(Icons.Default.ErrorOutline, contentDescription = stringResource(R.string.general_system_limitation)) }
         )
     }
 
@@ -297,13 +302,13 @@ fun PermissionsContent(
 ) {
     Surface(
         modifier = modifier
-            .navigationBarsPadding()
             .fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .safeDrawingPadding()
                 .padding(horizontal = 24.dp)
                 .padding(top = 24.dp, bottom = 16.dp)
         ) {
@@ -507,7 +512,7 @@ private fun PermissionCard(
 @Preview(showBackground = true)
 @Composable
 private fun PermissionsScreenPreview() {
-    ShizucallrecorderTheme(darkTheme = false) {
+    ShizuCallRecorderTheme(darkTheme = false) {
         PermissionsContent(
             status = OnboardingStatus.Status(
                 disclaimerAccepted = true,

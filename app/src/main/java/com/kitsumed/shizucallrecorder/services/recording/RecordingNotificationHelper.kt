@@ -29,6 +29,7 @@ import androidx.core.app.NotificationCompat
 import com.kitsumed.shizucallrecorder.R
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.data.call.EnrichedCallData
+import com.kitsumed.shizucallrecorder.utils.RecordingFileNameFormatter
 import com.kitsumed.shizucallrecorder.ui.theme.Green40
 
 class RecordingNotificationHelper(private val context: Context) {
@@ -153,7 +154,7 @@ class RecordingNotificationHelper(private val context: Context) {
                 discardActionText = context.getString(R.string.general_discard)
                 discardActionIntentAction = RecordingForegroundService.ACTION_DISCARD_RECORDING
             }
-            else -> {
+            is RecordingServiceState.Standby -> {
                 titleRes = R.string.recording_standby_notification_title
                 contentRes = R.string.recording_notification_press_to_start
                 actionIcon = R.drawable.ic_mic
@@ -184,8 +185,8 @@ class RecordingNotificationHelper(private val context: Context) {
             .setAutoCancel(false)
             .setOnlyAlertOnce(true)
             .setColor(Green40.toArgb())
-            .setColorized(state is RecordingServiceState.Active && !state.isPaused)
-            .setSilent(state is RecordingServiceState.Active || state is RecordingServiceState.Starting) // Don't do a screen-incursion if we are already recording.
+            .setColorized(state.isRecordingActive && !state.isRecordingPaused)
+            .setSilent(state.isStarting || state.isRecordingActive) // Don't do a screen-incursion if we are already recording.
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
         if (actionText != null && actionIntentAction != null && actionIcon != null) {
@@ -222,28 +223,28 @@ class RecordingNotificationHelper(private val context: Context) {
         if (oldState == newState) return // Ignore duplicates
 
         when (newState) {
-            is RecordingServiceState.Standby -> {
+            is RecordingServiceState.Standby  -> {
                 if (newState.metadata == null) {
                     showToast(context.getString(R.string.recording_toast_ended))
                     vibrate(VibrationEffect.createWaveform(longArrayOf(0, 300, 150, 300), intArrayOf(0, 64, 0, 128), -1))
-                } else if (oldState !is RecordingServiceState.Standby) {
+                } else {
                     val dirLabel = newState.metadata.direction.labelResId.let { context.getString(it) }
                     showToast(context.getString(R.string.recording_toast_standby, dirLabel))
                 }
             }
-            is RecordingServiceState.Active -> {
-                val wasActive = oldState is RecordingServiceState.Active
-                val wasPaused = wasActive && (oldState as RecordingServiceState.Active).isPaused
 
-                if (newState.isPaused && (!wasActive || !wasPaused)) {
+            is RecordingServiceState.Active -> {
+                val wasActiveAndPaused = oldState.isRecordingPaused
+
+                if (newState.isPaused && !wasActiveAndPaused) {
                     // Recording was paused
                     showToast(context.getString(R.string.recording_toast_paused))
                     vibrate(VibrationEffect.createWaveform(longArrayOf(0, 300, 150, 300), intArrayOf(0, 64, 0, 128), -1))
-                } else if (!newState.isPaused && wasPaused) {
+                } else if (!newState.isPaused && wasActiveAndPaused) {
                     // Recording was resumed
                     showToast(context.getString(R.string.recording_toast_resumed))
                     vibrate(VibrationEffect.createWaveform(longArrayOf(0, 300, 150, 300), intArrayOf(0, 64, 0, 128), -1))
-                } else if (!newState.isPaused && !wasActive) {
+                } else if (!newState.isPaused) {
                     // Recording was started
                     showToast(context.getString(R.string.recording_started))
                     vibrate(VibrationEffect.createWaveform(longArrayOf(0, 300, 150, 300), intArrayOf(0, 64, 0, 128), -1))
@@ -266,6 +267,14 @@ class RecordingNotificationHelper(private val context: Context) {
         val playRequestCode = notificationId + 1
         val shareRequestCode = notificationId + 2
         val deleteRequestCode = notificationId + 3
+
+        val number = callMetadata.getBestNumber()
+        val callerText = when {
+            callMetadata.callerName != null && number.isNotEmpty() -> "${callMetadata.callerName} ($number)"
+            callMetadata.callerName != null -> callMetadata.callerName
+            number.isNotEmpty() -> number
+            else -> context.getString(R.string.post_recording_notification_unknown_caller)
+        }
 
         // Play action
         val playIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -300,7 +309,7 @@ class RecordingNotificationHelper(private val context: Context) {
             .setSmallIcon(R.drawable.ic_audio_file)
             .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             .setContentTitle(context.getString(R.string.post_recording_notification_title))
-            .setContentText(callMetadata.getBestNumber().takeIf { it.isNotEmpty() } ?: context.getString(R.string.post_recording_notification_unknown_caller))
+            .setContentText(callerText)
             .setAutoCancel(true)
             .addAction(android.R.drawable.ic_media_play, context.getString(R.string.general_play), playPendingIntent)
             .addAction(android.R.drawable.ic_menu_share, context.getString(R.string.general_share), sharePendingIntent)

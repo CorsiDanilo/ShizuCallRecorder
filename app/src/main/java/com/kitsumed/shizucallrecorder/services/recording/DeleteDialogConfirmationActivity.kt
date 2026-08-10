@@ -42,7 +42,7 @@ class DeleteDialogConfirmationActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.delete_recording_confirmation_title))
             .setMessage(getString(R.string.delete_recording_confirmation_message))
-            .setPositiveButton(getString(R.string.general_delete)) { _, _ ->
+            .setPositiveButton(getString(R.string.general_delete)) { dialog, _ ->
                 try {
                     val deleted = DocumentFile.fromSingleUri(this, fileUri)?.delete() == true
                     if (deleted) {
@@ -57,15 +57,13 @@ class DeleteDialogConfirmationActivity : AppCompatActivity() {
                     AppLogger.e( "Failed to delete file: $fileUri", e)
                     Toast.makeText(this, getString(R.string.delete_recording_confirmation_failed), Toast.LENGTH_LONG).show()
                 }
-                finish()
+                dialog.dismiss()
             }
             .setNegativeButton(getString(R.string.general_cancel)) { dialog, _ ->
                 dialog.dismiss()
-                finish()
             }
             .setOnDismissListener {
                 finish()
-            }
-            .show()
+            }.show()
     }
 }

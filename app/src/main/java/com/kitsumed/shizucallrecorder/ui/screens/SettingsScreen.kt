@@ -9,8 +9,10 @@
 package com.kitsumed.shizucallrecorder.ui.screens
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
@@ -28,6 +30,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
@@ -44,6 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -70,7 +75,7 @@ import com.kitsumed.shizucallrecorder.ui.common.FileNameFormatDialog
 import com.kitsumed.shizucallrecorder.ui.common.M3DropdownField
 import com.kitsumed.shizucallrecorder.ui.common.OptionItem
 import com.kitsumed.shizucallrecorder.ui.common.ToggleListItem
-import com.kitsumed.shizucallrecorder.ui.theme.ShizucallrecorderTheme
+import com.kitsumed.shizucallrecorder.ui.theme.ShizuCallRecorderTheme
 import com.kitsumed.shizucallrecorder.ui.viewmodels.ContactPickerState
 import com.kitsumed.shizucallrecorder.ui.viewmodels.ContactPickerType
 import com.kitsumed.shizucallrecorder.ui.viewmodels.ContactPickerViewModel
@@ -79,9 +84,11 @@ import com.kitsumed.shizucallrecorder.ui.viewmodels.SettingsActions
 import com.kitsumed.shizucallrecorder.ui.viewmodels.SettingsViewModel
 import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
+import com.kitsumed.shizucallrecorder.system.permissions.PermissionChecks
 import kotlinx.coroutines.delay
 import org.xmlpull.v1.XmlPullParser
 import java.util.Locale
+import androidx.core.net.toUri
 
 /**
  * Stateful wrapper for the Settings screen that connects [SettingsViewModel] to [SettingsContent].
@@ -172,13 +179,16 @@ fun SettingsContent(
 ) {
     Surface(
         modifier = modifier
-            .fillMaxSize()
-            .navigationBarsPadding(),
+            .fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+            modifier = Modifier
+                .fillMaxSize(),
+            // Equivalent to .safeDrawingPadding() but allow UI to extend behind the status bar when scrolling
+            contentPadding = WindowInsets.safeDrawing
+                .add(WindowInsets(left = 20.dp, right = 20.dp, top = 0.dp, bottom = 0.dp))
+                .asPaddingValues(),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
@@ -204,6 +214,7 @@ fun SettingsContent(
             item { SecuritySection(preferences, updateTrigger, actions) }
             item { VisualSection(preferences, updateTrigger, actions) }
             item { DebugSection(preferences, updateTrigger, actions, onExportLogs) }
+            item {  } // extra padding at bottom
         }
     }
 
@@ -328,6 +339,7 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
     val currentThemeMode = remember(updateTrigger) { preferences.getThemeMode() }
     val isDynamicColorEnabled = remember(updateTrigger) { preferences.isDynamicColorEnabled() }
     val isShowToastsEnabled = remember(updateTrigger) { preferences.isShowToastsEnabled() }
+    val isRecordingOverlayEnabled = remember(updateTrigger) { preferences.isOverlayEnabled() }
     val context = LocalContext.current
     val resources = LocalResources.current
 
@@ -399,6 +411,22 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
             label           = stringResource(R.string.settings_show_toasts),
             checked         = isShowToastsEnabled,
             onCheckedChange = { actions.setShowToastsEnabled(it) }
+        )
+        ToggleListItem(
+            label = stringResource(R.string.settings_overlay_title),
+            description = stringResource(R.string.settings_overlay_subtitle),
+            checked = isRecordingOverlayEnabled,
+            onCheckedChange = { enabled ->
+                if (enabled && !PermissionChecks.hasOverlayPermission(context)) {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        "package:${context.packageName}".toUri()
+                    )
+                    context.startActivity(intent)
+                } else {
+                    actions.setOverlayEnabled(enabled)
+                }
+            }
         )
     }
 }
@@ -609,7 +637,9 @@ private fun RecordingSection(
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), thickness = 0.5.dp)
 
         ListItem(
-            modifier = Modifier.clickable { onSelectFolder() },
+            modifier = Modifier
+                .clickable { onSelectFolder() }
+                .semantics(mergeDescendants = true) {},
             headlineContent = { Text(stringResource(R.string.settings_recording_folder_label)) },
             supportingContent = {
                 Text(
@@ -627,7 +657,9 @@ private fun RecordingSection(
         )
 
         ListItem(
-            modifier = Modifier.clickable { showFileNameFormatDialog = true },
+            modifier = Modifier
+                .clickable { showFileNameFormatDialog = true }
+                .semantics(mergeDescendants = true) {},
             headlineContent = { Text(stringResource(R.string.settings_file_name_template)) },
             supportingContent = {
                 Text(
@@ -1112,23 +1144,32 @@ private fun IgnoreContactsOptions(
 
         val enumEntries = AppPreferences.IgnoreContactsMode.entries
         enumEntries.forEach { ignoreContactMode ->
+            val isCurrentlySelected = (selectedEnum == ignoreContactMode)
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    // This make the box/text next to the radio button clickable, not just the button itself, which is more user-friendly.
-                    .clickable { onSelected(ignoreContactMode) }
+                    // This make the box/text next to the radio button selectable, not just the button itself, which is more user-friendly.
+                    .minimumInteractiveComponentSize()
+                    .selectable(
+                        selected = isCurrentlySelected,
+                        onClick = { onSelected(ignoreContactMode) },
+                        role = Role.RadioButton
+                    )
+                    .semantics(mergeDescendants = true) {
+                    }
                     .padding(vertical = 4.dp)
             ) {
-                // Make the actual radio button (circle) clickable (it's quite small)
-                RadioButton(selected = selectedEnum == ignoreContactMode, onClick = { onSelected(ignoreContactMode) })
+                RadioButton(selected = isCurrentlySelected, onClick = null)
                 Text(
                     text = when (ignoreContactMode) {
                         AppPreferences.IgnoreContactsMode.NONE -> stringResource(R.string.settings_ignore_contacts_none)
                         AppPreferences.IgnoreContactsMode.ALL -> stringResource(R.string.settings_ignore_contacts_all)
                         AppPreferences.IgnoreContactsMode.SELECTED   -> stringResource(R.string.settings_ignore_contacts_selected)
                     },
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 12.dp)
                 )
             }
         }
@@ -1174,7 +1215,7 @@ fun WarningCard(
             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
             contentColor = MaterialTheme.colorScheme.onErrorContainer
         ),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
     ) {
         Row(
             modifier = Modifier
@@ -1185,7 +1226,7 @@ fun WarningCard(
             // Warning Icon aligned to the top of text lines
             Icon(
                 imageVector = Icons.Default.Warning,
-                contentDescription = "Warning Indicator",
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 2.dp)
             )
@@ -1289,7 +1330,7 @@ private fun RecordingsEntryCard(onOpenRecordings: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 private fun SettingsScreenPreview() {
-    ShizucallrecorderTheme(darkTheme = false, dynamicColor = false) {
+    ShizuCallRecorderTheme(darkTheme = false, dynamicColor = false) {
         val mockContext = LocalContext.current
         val dummyPreferences = AppPreferences(mockContext)
         val dummyActions = object : SettingsActions {
@@ -1324,6 +1365,7 @@ private fun SettingsScreenPreview() {
             override fun setAutoDeleteDays(days: Int) {}
             override fun setPostRecordingFileNotification(enabled: Boolean) {}
             override fun setKeepScreenOnDuringCalls(enabled: Boolean) {}
+            override fun setOverlayEnabled(enabled: Boolean) {}
         }
         // File name template selection dialog
         //FileNameFormatDialog(AppPreferences.DefaultsValue.FILE_NAME_TEMPLATE, {},{})

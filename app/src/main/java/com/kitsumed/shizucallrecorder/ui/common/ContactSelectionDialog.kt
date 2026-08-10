@@ -31,13 +31,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
-import com.kitsumed.shizucallrecorder.ui.theme.ShizucallrecorderTheme
+import com.kitsumed.shizucallrecorder.ui.theme.ShizuCallRecorderTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.kitsumed.shizucallrecorder.R
@@ -139,7 +142,7 @@ fun ContactSelectionContent(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 placeholder = { Text(stringResource(R.string.contact_search_hint)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null,) },
                 shape = CircleShape,
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -313,7 +316,7 @@ private fun ContactAvatar(contact: ContactEntry) {
         if (bitmap != null) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
+                contentDescription = stringResource(R.string.a11y_contact_photo, contact.name),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
@@ -321,7 +324,8 @@ private fun ContactAvatar(contact: ContactEntry) {
             Text(
                 text = contact.name.take(1).uppercase(),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.clearAndSetSemantics {} // Tell talkback to ignore this text
             )
         }
     }
@@ -338,7 +342,7 @@ fun PreviewContactSelectionDialog() {
     )
     val selectedContacts = setOf("2")
 
-    ShizucallrecorderTheme(darkTheme = true) {
+    ShizuCallRecorderTheme(darkTheme = true) {
         ContactSelectionContent(
             title = stringResource(R.string.settings_select_contacts, selectedContacts.count()),
             contacts = dummyContacts,

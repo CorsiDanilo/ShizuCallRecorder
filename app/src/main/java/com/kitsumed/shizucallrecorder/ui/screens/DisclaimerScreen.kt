@@ -8,12 +8,12 @@
 
 package com.kitsumed.shizucallrecorder.ui.screens
 
+import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -46,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -62,8 +63,7 @@ import androidx.compose.ui.unit.dp
 import com.kitsumed.shizucallrecorder.AppUrls
 import com.kitsumed.shizucallrecorder.BuildConfig
 import com.kitsumed.shizucallrecorder.R
-import com.kitsumed.shizucallrecorder.ui.theme.ShizucallrecorderTheme
-import kotlinx.coroutines.coroutineScope
+import com.kitsumed.shizucallrecorder.ui.theme.ShizuCallRecorderTheme
 import kotlinx.coroutines.delay
 
 
@@ -77,6 +77,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     // [rememberSaveable] allow for the values to survive configuration
     // changes (like when recompose is triggered by a screen rotation)
     var hasAccepted by rememberSaveable { mutableStateOf(false) }
@@ -89,6 +90,10 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
             !scrollState.canScrollForward || scrollState.maxValue == 0
         }
     }
+    val isTalkBackEnabled = remember(context) {
+        val accService = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        accService.isEnabled && accService.isTouchExplorationEnabled
+    }
 
     // Countdown timer: decrements timeLeft once per second until it reaches 0.
     LaunchedEffect(Unit) {
@@ -98,16 +103,15 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 
-    // Surface ensures the Material 3 background colour fills the screen correctly.
     Surface(
         modifier = Modifier
-            .navigationBarsPadding()
             .fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .safeDrawingPadding()
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -150,7 +154,7 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
 
             // Acknowledgement checkbox, only becomes interactive after the user scrolls down.
             AnimatedContent(
-                targetState = hasScrolledToBottom,
+                targetState = hasScrolledToBottom || isTalkBackEnabled,
                 transitionSpec = {
                     val enterFade = fadeIn(tween(600))
                     val exitFade = fadeOut(tween(500))
@@ -187,7 +191,7 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
             }
 
             // Continue button, enabled only when all three gates are satisfied.
-            val canContinue = hasAccepted && hasScrolledToBottom && timeLeft == 0
+            val canContinue = hasAccepted && (hasScrolledToBottom || isTalkBackEnabled) && timeLeft == 0
 
             Button(
                 onClick = onContinue,
@@ -197,7 +201,7 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
                 if (timeLeft > 0) {
                     Text(text = stringResource(R.string.disclaimer_wait, timeLeft))
                 }
-                else if (!hasScrolledToBottom) {
+                else if (!canContinue) {
                     Text(text = stringResource(R.string.disclaimer_must_read))
                 }
                 else {
@@ -268,7 +272,7 @@ fun HyperlinkText(
 @Preview(showBackground = true)
 @Composable
 private fun DisclaimerScreenPreview() {
-    ShizucallrecorderTheme {
+    ShizuCallRecorderTheme {
         DisclaimerScreen(onContinue = {})
     }
 }

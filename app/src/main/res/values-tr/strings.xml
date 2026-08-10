@@ -64,8 +64,8 @@
     <string name="settings_auto_record_incoming">Gelen aramaları otomatik kaydet</string>
     <string name="settings_auto_record_outgoing">Giden aramaları otomatik kaydet</string>
     <string name="settings_ignore_anonymous_incoming">Gelen anonim aramaları yoksay</string>
-    <string name="settings_ignore_cross_country_incoming">Uluslararası gelen aramaları yoksay</string>
-    <string name="settings_ignore_cross_country_outgoing">Uluslararası giden aramaları yoksay</string>
+    <string name="settings_ignore_cross_country_incoming">Gelen uluslararası aramaları yoksay</string>
+    <string name="settings_ignore_cross_country_outgoing">Giden uluslararası aramaları yoksay</string>
     <string name="settings_ignore_contacts_incoming">Kişileri yoksay (gelen)</string>
     <string name="settings_ignore_contacts_outgoing">Kişileri yoksay (giden)</string>
     <string name="settings_ignore_contacts_none">Tüm kişileri kaydet</string>
@@ -174,4 +174,18 @@
     <string name="placeholder_caller_name_desc">Arayan kişinin adı; önce kişi listesine bakın, varsa telekom operatörünün Arayan Kimliği (CallerID) bilgisini kullanın.</string>
     <string name="placeholder_package_name_desc">Aramayı başlatan uygulamanın adı veya paket adı.</string>
     <string name="settings_open_github_Wiki">Wiki\'yi görüntüle</string>
+    <string name="general_permission_escalation_exhausted">\'%1$s\' iznini \'%2$s\' elde edemediniz.\nTüm yükseltme adımları (%3$d) tükendi.\n\nLütfen Shizuku\'nun şu anda çalıştığından emin olun, çünkü bu hataya neden olabilir.\n\nOEM\'iniz ayrıca tüm izin değişikliklerimizi aktif olarak engelliyor veya geri alıyor olabilir. Lütfen bu davranışı devre dışı bırakabilecek bir şey olup olmadığını görmek için telefon ayarlarınıza bakın.\n\nVivo, Oppo, Xiaomi ve diğer Çinli satıcıların cihazları genellikle bu izne erişimi tamamen engelleyebilecek agresif sistem kısıtlamaları içerir.\n\nADB ile gerekli izni manuel olarak kendinize vermenin bir yolunu bulursanız, lütfen GitHub\'da bir sorun oluşturarak bize bildirin!</string>
+    <string name="general_play">Oynat</string>
+    <string name="general_share">Paylaş</string>
+    <string name="general_delete">Sil</string>
+    <string name="general_deleted">Silindi</string>
+    <string name="settings_post_recording_notification">Kayıt sonrası bildirimi</string>
+    <string name="settings_post_recording_notification_description">Kayıt sona erdikten sonra; oynat ve sil gibi hızlı eylemleri içeren bir bildirim göster.</string>
+    <string name="post_recording_notification_title">Kayıt yönetimi</string>
+    <string name="post_recording_notification_unknown_caller">Anonim veya bilinmeyen arayan</string>
+    <string name="delete_recording_confirmation_title">Kaydı sil</string>
+    <string name="delete_recording_confirmation_message">Bu kaydı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</string>
+    <string name="delete_recording_confirmation_failed">Kayıt silinemedi. Lütfen uygulama günlüklerini kontrol edin.</string>
+    <string name="settings_overlay_title">Yüzen kayıt butonu göster</string>
+    <string name="settings_overlay_subtitle">Diğer uygulamaların üzerinde yer alan ve kaydı yönetmek için hızlı işlemler içeren yüzen kayıt butonu göster.</string>
 </resources>
