@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.2] - 2026-09-25
+### Changed
+- **Upstream Sync**: Synchronized upstream commits and features from `kitsumed/ShizuCallRecorder:main` (release 1.3.3).
+- **Translations**: Updated localization strings from Hosted Weblate for Arabic, Bulgarian, Czech, Spanish, French, Slovak, and Simplified Chinese.
+- **Dependencies**: Bumped `libphonenumber` to version `9.0.36`.
+- **CI / Workflows**: Updated CodeQL security scanning workflows and added `--no-daemon` option to build CI.
+
 ## [1.4.1] - 2026-08-10
 ### Added
 - **Automatic Shizuku Recovery**: Recording now waits for Shizuku to reconnect and automatically starts a new recording segment after a temporary binder disconnection.
